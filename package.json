@@ -1,0 +1,20 @@
+{
+  "name": "connect4",
+  "private": true,
+  "version": "0.0.0",
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "dev:web": "pnpm --filter @connect4/web dev",
+    "dev:api": "pnpm --filter @connect4/api dev",
+    "dev": "pnpm -r --parallel dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "format": "prettier -w ."
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.9",
+    "prettier": "^3.3.3",
+    "vitest": "^4.0.17"
+  }
+}
