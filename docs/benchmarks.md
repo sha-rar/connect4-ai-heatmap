@@ -188,3 +188,82 @@ Iterative deepening to the end of the game; reports usedDepth.
 | midgame-14 | 2 | 8921 | 2.73 | no | 7/7 |
 | midgame-18 | 5 | 5339 | 1.76 | no | 6/6 |
 | midgame-22 | 6 | 3848 | 1.21 | no | 5/5 |
+
+## C++ engine after Phase 4
+
+Phase 4 added threat-based and transposition-table move ordering, two-entry table buckets, tactical pruning (forced blocks, never playing under an opponent's winning cell, a mate-distance bound) and a depth-16 opening book. All of these leave the search scores unchanged; the tests compare them with an unpruned minimax.
+
+### Native, depth 12 (no time limit)
+
+| Position | Phase 2 nodes | Phase 2 time | Phase 4 nodes | Phase 4 time | Speed-up |
+| -------- | ------------: | -----------: | ------------: | -----------: | -------: |
+| midgame-10 | 3,479,257 | 1149 ms | 144,649 | 55 ms | 21× |
+| midgame-14 | 2,169,962 | 652 ms | 218,676 | 86 ms | 7.6× |
+| midgame-18 | 490,328 | 125 ms | 25,818 | 9.2 ms | 14× |
+| midgame-22 | 174,531 | 37 ms | 20,348 | 6.1 ms | 6× |
+
+Deepest complete native search in 250 ms: `midgame-10` 10 → 15, `midgame-14` 11 → 14, `midgame-18` 13 → solved (24 plies), `midgame-22` solved in both.
+
+Move ordering gives most of the gain. The table buckets barely matter at the default 16 MiB, but cut nodes by 25–43% when the table is under pressure (2^14–2^16 entries at depth 16). Tactical pruning removes a further ~40% of nodes. The Phase 2 node-count gap is reversed: depth 12 on `midgame-10` now visits 145K nodes, against 1.31M for the TypeScript engine.
+
+### TypeScript vs C++ (WebAssembly), identical positions and limits
+
+Run with `pnpm --filter @connect4/api compare`. Both engines get depth 12 and the same time limit. Output from 2026-11-03:
+
+#### Same positions, same limits (depth 12)
+
+"Complete" means the scores come from a finished depth-12 search. The TypeScript engine reports the requested depth even when cut off, so it counts as complete only if it finished inside the limit.
+
+| Position | Limit | Engine | Time (ms) | Nodes | Depth | Complete | Best col | Columns scored |
+| -------- | ----: | ------ | --------: | ----: | ----: | :------: | -------: | -------------: |
+| midgame-10 | 100 | TypeScript | 99 | 19336 | 12 | no | 3 | 1/7 |
+| midgame-10 | 100 | C++ | 39 | 144649 | 12 | yes | 3 | 7/7 |
+| midgame-10 | 250 | TypeScript | 250 | 63429 | 12 | no | 3 | 1/7 |
+| midgame-10 | 250 | C++ | 31 | 144649 | 12 | yes | 3 | 7/7 |
+| midgame-10 | 1000 | TypeScript | 1000 | 256342 | 12 | no | 3 | 1/7 |
+| midgame-10 | 1000 | C++ | 31 | 144649 | 12 | yes | 3 | 7/7 |
+| midgame-14 | 100 | TypeScript | 99 | 23898 | 12 | no | 2 | 2/7 |
+| midgame-14 | 100 | C++ | 46 | 218676 | 12 | yes | 5 | 7/7 |
+| midgame-14 | 250 | TypeScript | 249 | 63365 | 12 | no | 2 | 2/7 |
+| midgame-14 | 250 | C++ | 46 | 218676 | 12 | yes | 5 | 7/7 |
+| midgame-14 | 1000 | TypeScript | 999 | 247176 | 12 | no | 4 | 3/7 |
+| midgame-14 | 1000 | C++ | 49 | 218676 | 12 | yes | 5 | 7/7 |
+| midgame-18 | 100 | TypeScript | 100 | 25491 | 12 | no | 2 | 1/6 |
+| midgame-18 | 100 | C++ | 5 | 25818 | 12 | yes | 5 | 6/6 |
+| midgame-18 | 250 | TypeScript | 250 | 54184 | 12 | no | 1 | 3/6 |
+| midgame-18 | 250 | C++ | 11 | 25818 | 12 | yes | 5 | 6/6 |
+| midgame-18 | 1000 | TypeScript | 735 | 177649 | 12 | yes | 5 | 6/6 |
+| midgame-18 | 1000 | C++ | 5 | 25818 | 12 | yes | 5 | 6/6 |
+| midgame-22 | 100 | TypeScript | 99 | 26489 | 12 | no | 5 | 3/5 |
+| midgame-22 | 100 | C++ | 4 | 20348 | 12 | yes | 5 | 5/5 |
+| midgame-22 | 250 | TypeScript | 186 | 46284 | 12 | yes | 5 | 5/5 |
+| midgame-22 | 250 | C++ | 4 | 20348 | 12 | yes | 5 | 5/5 |
+| midgame-22 | 1000 | TypeScript | 239 | 46284 | 12 | yes | 5 | 5/5 |
+| midgame-22 | 1000 | C++ | 4 | 20348 | 12 | yes | 5 | 5/5 |
+
+#### Deepest C++ search within the same limits
+
+Depth not capped at 12; shows how far iterative deepening gets.
+
+| Position | 100 ms | 250 ms | 1000 ms |
+| -------- | -----: | -----: | -----: |
+| midgame-10 | 14 | 16 | 20 |
+| midgame-14 | 13 | 15 | 20 |
+| midgame-18 | solved 24 | solved 24 | solved 24 |
+| midgame-22 | solved 20 | solved 20 | solved 20 |
+
+#### Head-to-head games
+
+Each opening column is played twice, once with each engine moving first; the first move is forced, then both engines search with depth 12 and the same time limit per move.
+
+| Limit per move | Games | C++ wins | Draws | TypeScript wins |
+| -------------: | ----: | -------: | ----: | --------------: |
+| 100 ms | 14 | 11 | 1 | 2 |
+| 250 ms | 14 | 11 | 1 | 2 |
+
+Notes:
+
+- At 100–250 ms the TypeScript engine rarely finishes depth 12. It then returns only 1–3 scored columns, and its move comes from that partial search. The C++ engine completes depth 12 on every position, usually in under 50 ms.
+- With no depth cap, the C++ engine reaches depth 13–16 in 100–250 ms and solves the two later positions to the end of the game.
+- On this machine the WebAssembly build (Node 24) ran faster than the native MinGW build (for example 31 ms vs 55 ms for depth 12 on `midgame-10`, with identical node counts). This wasn't investigated further.
+- In the head-to-head games the TypeScript engine won 2 games at each time limit. With only 14 deterministic games per setting, treat the results as a strong trend rather than a precise rating.
