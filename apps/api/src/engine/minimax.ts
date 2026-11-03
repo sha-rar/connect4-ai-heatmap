@@ -1,4 +1,4 @@
-import type { Board, Player } from "@connect4/core";
+import type { Board, ChooseMoveOptions, ChooseMoveResult, Player } from "@connect4/core";
 import { COLS, otherPlayer } from "@connect4/core";
 import { applyMove, isLegalMove, legalMoves } from "@connect4/core";
 import { checkWin } from "@connect4/core";
@@ -7,20 +7,7 @@ import { evaluateBoard, WIN_SCORE } from "./evaluate";
 import { getOpeningMove } from "./openings";
 import { TranspositionTable } from "./tt";
 
-export type ChooseMoveOptions = {
-  depth?: number;        // default 6
-  timeLimitMs?: number;  // default 250
-};
-
-export type ChooseMoveResult = {
-  bestCol: number;
-  bestScore: number;
-  columnScores: Array<number | null>; // length COLS
-  nodes: number;
-  ms: number;
-  usedDepth: number;
-  opening: boolean;
-};
+export type { ChooseMoveOptions, ChooseMoveResult };
 
 function moveOrder(): number[] {
   const centre = Math.floor(COLS / 2);

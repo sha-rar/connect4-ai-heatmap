@@ -2,8 +2,9 @@ import type { Board, Cell, Player } from "@connect4/core";
 import { COLS, ROWS, otherPlayer } from "@connect4/core";
 import { checkWin } from "@connect4/core";
 import { getCell } from "@connect4/core";
+import { WIN_SCORE } from "@connect4/core";
 
-export const WIN_SCORE = 1_000_000;
+export { WIN_SCORE };
 
 function scoreWindow(window: Cell[], root: Player): number {
   const opp = otherPlayer(root);

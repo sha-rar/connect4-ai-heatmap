@@ -1,14 +1,9 @@
-import type { Board, Player } from "@connect4/core";
+import type { ChooseMoveRequest, ChooseMoveResult } from "@connect4/core";
 
-export type ChooseMoveRequest = {
-  board: Board;
-  player: Player;
-  depth?: number;
-  timeLimitMs?: number;
-};
+export type { ChooseMoveRequest };
 
 export type ChooseMoveResponse =
-  | { ok: true; bestCol: number; bestScore: number; columnScores: Array<number | null>; nodes: number; ms: number; usedDepth: number; opening: boolean }
+  | ({ ok: true } & ChooseMoveResult)
   | { ok: false; error: unknown };
 
 export async function chooseMove(req: ChooseMoveRequest): Promise<ChooseMoveResponse> {
