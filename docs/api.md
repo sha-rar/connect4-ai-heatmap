@@ -73,6 +73,7 @@ The native C++ engine ([engine/](../engine/README.md)) closes these gaps:
 - It has no shortcuts. Every legal column is scored by a full search, and a forced block scores as the loss or draw it really is.
 - Iterative deepening discards any iteration the time limit interrupts, so scores always come from a completed search.
 - `usedDepth` is the deepest completed iteration. The requested depth is capped at the number of empty cells.
-- `opening` is always `false` until an opening book is added (Phase 4).
+- `opening` is `true` when the answer comes from the opening book: every position with up to 3 discs, precomputed at depth 16. A book answer has `nodes: 0`, `usedDepth: 16` and a full set of column scores. The book is used only when the requested depth is at most 16.
+- `bestCol` is always the highest-scored column, with ties going to the more central column, so `columnScores[bestCol] === bestScore` holds for every answer, whether searched, time-limited or from the book.
 
 The website calls it through `chooseMove()` in [`apps/web/src/lib/api.ts`](../apps/web/src/lib/api.ts). That function posts the request to a Web Worker running the WebAssembly build, and never rejects: failures resolve as `{ ok: false, error }`, for example for an invalid position or a game that is already over. The worker's response also includes `timedOut: boolean`. The Express endpoint is no longer used by the website; it stays only until Phase 5.

@@ -30,14 +30,22 @@ Rules are applied in this order; the first match wins.
 - Tint opacity is `0.06 + 0.22 × intensity`; outline opacity is `0.55 × intensity`.
 - A draw (score `0`) is not distinguished from an evaluation of `0`; it is shaded as a heuristic column.
 
+## Chosen column
+
+The column the AI played gets a white inner outline, and its tooltip ends with "(AI's move)". For the C++ engine, this column always holds the highest score in the heatmap. The marker stays even if the move filled the column.
+
 ## Lifecycle
 
 - The heatmap is cleared when the human moves, and redrawn when the AI returns a result.
 - `illegal` is always derived from the current board, so a column filled by the AI's own move shows as `Full` immediately.
 
-## Known limitations of the TypeScript engine
+## Engine differences
 
-The display rules are correct for a complete search, but the current engine does not always provide one (see [api.md](api.md#known-gaps-in-the-current-typescript-engine)):
+The website uses the C++ engine (WebAssembly), which scores every legal column on every move, including opening-book moves, and never shows partial results.
+
+### Known limitations of the TypeScript engine
+
+The display rules are correct for a complete search, but the TypeScript engine does not always provide one (see [api.md](api.md#known-gaps-in-the-current-typescript-engine)):
 
 - Opening-book and win/block shortcuts leave other columns `unscored`.
 - A forced block is reported as `WIN_SCORE`, so it shows as `W1` even in a lost position.
