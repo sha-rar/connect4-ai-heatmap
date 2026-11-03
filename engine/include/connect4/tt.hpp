@@ -28,7 +28,9 @@ struct TTEntry {
 };
 static_assert(sizeof(TTEntry) == 16);
 
-/// Fixed-size transposition table with depth-preferred replacement.
+/// Fixed-size transposition table of two-entry buckets. A result for a new
+/// position replaces a stale entry, otherwise the shallower of the two, so
+/// deep results survive while fresh shallow ones still find room.
 ///
 /// Entries belong to a generation (one per chooseMove() call). Probes only
 /// return entries from the current generation: stored scores depend on the
@@ -57,10 +59,12 @@ public:
     std::size_t capacity() const { return entries_.size(); }
 
 private:
-    std::size_t indexOf(Bitboard key) const;
+    /// First entry of the bucket for `key`.
+    std::size_t bucketOf(Bitboard key) const;
 
     std::vector<TTEntry> entries_;
     int shift_;
+    std::size_t bucketSize_;
     std::uint16_t generation_ = 1;
 };
 
