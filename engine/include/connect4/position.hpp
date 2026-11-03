@@ -154,6 +154,9 @@ public:
     /// Cell `col` would be filled by, or 0 if the column is full.
     Bitboard moveBit(int col) const { return (mask_ + bottomMask(col)) & columnMask(col); }
 
+    /// The same position reflected left to right (column c becomes 6 - c).
+    Position mirrored() const;
+
     /// True if the player who moved last has four in a row.
     bool lastMoverWon() const { return hasAlignment(opponent()); }
 

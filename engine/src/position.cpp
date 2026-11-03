@@ -60,6 +60,28 @@ std::optional<Position> Position::fromMoves(std::string_view moves) {
     return pos;
 }
 
+namespace {
+
+Bitboard mirrorBits(Bitboard b) {
+    constexpr Bitboard kColumnBits = (Bitboard{1} << (kHeight + 1)) - 1;
+    Bitboard out = 0;
+    for (int col = 0; col < kWidth; ++col) {
+        const Bitboard bits = (b >> (col * (kHeight + 1))) & kColumnBits;
+        out |= bits << ((kWidth - 1 - col) * (kHeight + 1));
+    }
+    return out;
+}
+
+}  // namespace
+
+Position Position::mirrored() const {
+    Position pos;
+    pos.current_ = mirrorBits(current_);
+    pos.mask_ = mirrorBits(mask_);
+    pos.moves_ = moves_;
+    return pos;
+}
+
 int Position::winner() const {
     const int last = toMove() == 1 ? 2 : 1;
     if (hasAlignment(opponent())) return last;

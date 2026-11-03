@@ -193,3 +193,15 @@ TEST_CASE(can_win_next_matches_winning_moves) {
         }
     }
 }
+
+TEST_CASE(mirrored_reflects_columns) {
+    const Position pos = mustParse("0013");
+    const Position mirror = pos.mirrored();
+    CHECK_EQ(mirror.key(), mustParse("6653").key());
+    CHECK_EQ(mirror.mirrored().key(), pos.key());
+    CHECK_EQ(mirror.toMove(), pos.toMove());
+    for (int row = 0; row < kHeight; ++row) {
+        for (int col = 0; col < kWidth; ++col) CHECK_EQ(mirror.cell(row, col), pos.cell(row, kWidth - 1 - col));
+    }
+    CHECK_EQ(Position().mirrored().key(), Position().key());
+}
