@@ -49,6 +49,8 @@ if(CONNECT4_BUILD_TESTS)
     tests/test_position.cpp
     tests/test_evaluate.cpp
     tests/test_search.cpp
+    tests/test_bindings.cpp
+    wasm/bindings.cpp
   )
   target_link_libraries(connect4_tests PRIVATE connect4_engine connect4_support)
   add_test(NAME connect4_tests COMMAND connect4_tests)
