@@ -2,6 +2,7 @@
   "name": "connect4",
   "private": true,
   "version": "0.0.0",
+  "type": "module",
   "packageManager": "pnpm@9.0.0",
   "scripts": {
     "dev:web": "pnpm --filter @connect4/web dev",
