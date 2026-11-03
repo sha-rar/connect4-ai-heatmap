@@ -15,7 +15,7 @@ constexpr int kInfinity = kWinScore + 1;
 
 class Searcher {
 public:
-    explicit Searcher(int rootPlayer) : rootPlayer_(rootPlayer) {}
+    Searcher(TranspositionTable& tt, int rootPlayer) : tt_(tt), rootPlayer_(rootPlayer) {}
 
     /// Negamax with alpha-beta pruning. Scores are from the perspective of
     /// the player to move in `pos`; `ply` counts moves made since the root.
@@ -29,6 +29,19 @@ public:
             const int score = evaluate(pos, rootPlayer_);
             return pos.toMove() == rootPlayer_ ? score : -score;
         }
+
+        const Bitboard key = pos.key();
+        if (const TTEntry* entry = tt_.probe(key); entry && entry->depth >= depth) {
+            switch (entry->bound) {
+                case Bound::Exact: return entry->score;
+                case Bound::Lower: alpha = std::max(alpha, entry->score); break;
+                case Bound::Upper: beta = std::min(beta, entry->score); break;
+            }
+            if (alpha >= beta) return entry->score;
+        }
+        // Classify the result against the window actually searched, after
+        // any narrowing from the table.
+        const int alphaSearched = alpha;
 
         int best = -kInfinity;
         for (const int col : kMoveOrder) {
@@ -48,25 +61,32 @@ public:
             alpha = std::max(alpha, best);
             if (alpha >= beta) break;
         }
+
+        const Bound bound = best <= alphaSearched ? Bound::Upper
+                            : best >= beta        ? Bound::Lower
+                                                  : Bound::Exact;
+        tt_.store(key, depth, best, bound);
         return best;
     }
 
     std::uint64_t nodes() const { return nodes_; }
 
 private:
+    TranspositionTable& tt_;
     int rootPlayer_;
     std::uint64_t nodes_ = 0;
 };
 
 }  // namespace
 
-SearchResult chooseMove(const Position& pos, const SearchOptions& options) {
+SearchResult Engine::chooseMove(const Position& pos, const SearchOptions& options) {
     const auto start = std::chrono::steady_clock::now();
     SearchResult result;
     if (pos.lastMoverWon() || pos.isFull()) return result;
 
+    tt_.newSearch();
     const int depth = std::max(1, options.depth);
-    Searcher searcher(pos.toMove());
+    Searcher searcher(tt_, pos.toMove());
 
     int bestScore = -kInfinity;
     for (const int col : kMoveOrder) {

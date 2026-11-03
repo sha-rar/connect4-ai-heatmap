@@ -6,6 +6,7 @@
 
 #include "connect4/evaluate.hpp"
 #include "connect4/position.hpp"
+#include "connect4/tt.hpp"
 
 namespace connect4 {
 
@@ -33,12 +34,26 @@ struct SearchResult {
     bool opening = false;
 };
 
-/// Pick a move for the player to move in `pos`.
-///
-/// Every legal root column is searched with a full window, so columnScores
-/// are exact minimax values at the searched depth. Scores use the shared
-/// scale: kWinScore - p for a win p plies from the root (kWinScore for an
-/// immediate win), -kWinScore + p for a loss, otherwise evaluate().
-SearchResult chooseMove(const Position& pos, const SearchOptions& options = {});
+/// Search engine. Owns the transposition table, so create one and reuse it
+/// for every move rather than constructing it per call.
+class Engine {
+public:
+    /// `ttLog2Entries` sets the table to 2^n entries of 16 bytes (default 16 MiB).
+    explicit Engine(int ttLog2Entries = 20) : tt_(ttLog2Entries) {}
+
+    /// Pick a move for the player to move in `pos`.
+    ///
+    /// Every legal root column is searched with a full window, so columnScores
+    /// are exact minimax values at the searched depth. Scores use the shared
+    /// scale: kWinScore - p for a win p plies from the root (kWinScore for an
+    /// immediate win), -kWinScore + p for a loss, otherwise evaluate().
+    SearchResult chooseMove(const Position& pos, const SearchOptions& options = {});
+
+    /// Forget everything learned in earlier searches.
+    void clear() { tt_.clear(); }
+
+private:
+    TranspositionTable tt_;
+};
 
 }  // namespace connect4

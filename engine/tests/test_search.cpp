@@ -55,6 +55,16 @@ Position fixturePosition(const PositionFixture& f) {
     return *pos;
 }
 
+/// One engine for the whole test binary, as the app would use it.
+Engine& engine() {
+    static Engine instance;
+    return instance;
+}
+
+SearchResult chooseMove(const Position& pos, const SearchOptions& options) {
+    return engine().chooseMove(pos, options);
+}
+
 bool isWin(int score) { return score >= kWinScore - kMaxPly; }
 
 std::string show(const std::array<std::optional<int>, kWidth>& scores) {
@@ -152,4 +162,43 @@ TEST_CASE(search_on_finished_game_returns_no_move) {
     const auto result = chooseMove(*won, {4});
     CHECK_EQ(result.bestCol, -1);
     for (const auto& score : result.columnScores) CHECK(!score.has_value());
+}
+
+TEST_CASE(transposition_table_size_does_not_change_scores) {
+    // A single-slot table collides constantly; results must stay identical
+    // and the full-size table must not visit more nodes.
+    Engine tiny(0);
+    Engine large(20);
+    for (const auto& f : loadPositions()) {
+        CONTEXT(f.id);
+        const Position pos = fixturePosition(f);
+        const auto a = tiny.chooseMove(pos, {7});
+        const auto b = large.chooseMove(pos, {7});
+        CHECK_EQ(show(a.columnScores), show(b.columnScores));
+        CHECK_EQ(a.bestCol, b.bestCol);
+        CHECK(b.nodes <= a.nodes);
+    }
+}
+
+TEST_CASE(transposition_table_matches_reference_at_depth_7) {
+    for (const auto& id : {"midgame-18", "midgame-22", "full-columns"}) {
+        CONTEXT(id);
+        const auto fixtures = loadPositions();
+        const auto it = std::find_if(fixtures.begin(), fixtures.end(), [&](const auto& f) { return f.id == id; });
+        REQUIRE(it != fixtures.end());
+        const Position pos = fixturePosition(*it);
+        CHECK_EQ(show(chooseMove(pos, {7}).columnScores), show(referenceColumnScores(pos, 7)));
+    }
+}
+
+TEST_CASE(reusing_an_engine_gives_the_same_result) {
+    Engine fresh;
+    for (const auto& f : loadPositions()) {
+        CONTEXT(f.id);
+        const Position pos = fixturePosition(f);
+        const auto reused = chooseMove(pos, {6});
+        const auto first = fresh.chooseMove(pos, {6});
+        fresh.clear();
+        CHECK_EQ(show(reused.columnScores), show(first.columnScores));
+    }
 }

@@ -20,6 +20,7 @@ add_library(connect4_engine
   src/position.cpp
   src/evaluate.cpp
   src/search.cpp
+  src/tt.cpp
 )
 target_include_directories(connect4_engine PUBLIC include)
 
