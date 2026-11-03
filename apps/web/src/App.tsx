@@ -32,6 +32,10 @@ function columnColours(heat: ColumnHeat): { background: string; borderColor: str
   }
 }
 
+// The engine deepens iteratively, so higher depths only cost time when the
+// time limit allows them.
+const DEPTH_OPTIONS = [4, 5, 6, 7, 8, 10, 12];
+
 export default function App() {
   const [board, setBoard] = useState<Board>(() => makeEmptyBoard());
   const [currentPlayer, setCurrentPlayer] = useState<Player>(1);
@@ -55,7 +59,9 @@ export default function App() {
     ms: number;
     usedDepth: number;
     opening: boolean;
+    timedOut: boolean;
   } | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   const title = useMemo(() => {
     if (status === "won") return `Player ${winner} wins`;
@@ -72,6 +78,7 @@ export default function App() {
     setStatus("playing");
     setColumnScores(Array(COLS).fill(null));
     setAiInfo(null);
+    setAiError(null);
     setAiBusy(false);
   }
 
@@ -123,16 +130,18 @@ export default function App() {
       });
 
       if (!resp.ok) {
-        console.error("AI error:", resp.error);
+        setAiError(resp.error);
         return;
       }
 
+      setAiError(null);
       setColumnScores(resp.columnScores);
       setAiInfo({
         nodes: resp.nodes,
         ms: resp.ms,
         usedDepth: resp.usedDepth,
-        opening: resp.opening
+        opening: resp.opening,
+        timedOut: resp.timedOut
       });
 
       const col = resp.bestCol;
@@ -316,9 +325,17 @@ export default function App() {
                 <>
                   <br />
                   <span style={{ opacity: 0.75 }}>
-                    AI: depth {aiInfo.usedDepth} · {aiInfo.ms}ms · {aiInfo.nodes} nodes
-                    {aiInfo.opening ? " · opening" : ""}
+                    C++ engine: depth {aiInfo.usedDepth}
+                    {aiInfo.timedOut ? " (time limit)" : ""} · {aiInfo.ms}ms ·{" "}
+                    {aiInfo.nodes.toLocaleString()} nodes
+                    {aiInfo.opening ? " · opening book" : ""}
                   </span>
+                </>
+              ) : null}
+              {aiError ? (
+                <>
+                  <br />
+                  <span style={{ color: "#ff8a8a" }}>AI error: {aiError}</span>
                 </>
               ) : null}
             </p>
@@ -369,17 +386,17 @@ export default function App() {
           <div style={styles.controlCard}>
             <div style={styles.label}>Difficulty</div>
             <div style={styles.row}>
-              <span style={styles.small}>Depth</span>
+              <span style={styles.small}>Max depth</span>
               <select
                 style={{ ...styles.select, width: 120 }}
                 value={depth}
                 onChange={(e) => setDepth(Number(e.target.value))}
               >
-                <option value={4}>4</option>
-                <option value={5}>5</option>
-                <option value={6}>6</option>
-                <option value={7}>7</option>
-                <option value={8}>8</option>
+                {DEPTH_OPTIONS.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
               </select>
             </div>
 
