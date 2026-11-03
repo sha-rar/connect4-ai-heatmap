@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include <algorithm>
 #include <string>
 
@@ -274,4 +275,33 @@ TEST_CASE(search_matches_reference_on_varied_positions) {
         }
     }
     CHECK(checked > 100);
+}
+
+TEST_CASE(results_are_consistent_with_the_heatmap) {
+    // Whatever the options (exact, time-limited, book), the chosen move must
+    // be the best-scored column, ties going to the most central column.
+    Engine engine;
+    const SearchOptions variants[] = {{6, 0, false}, {kMaxPly, 5, false}, {6, 250, true}};
+    for (const auto& f : loadEvaluations()) {
+        const Cells cells = rowsToCells(f.rows);
+        const auto pos = Position::fromCells(cells, impliedToMove(cells));
+        REQUIRE(pos.has_value());
+        if (pos->winner() != 0 || pos->isFull()) continue;
+
+        for (const auto& options : variants) {
+            CONTEXT(f.id + " depth " + std::to_string(options.depth));
+            const auto r = engine.chooseMove(*pos, options);
+            REQUIRE(pos->canPlay(r.bestCol));
+            CHECK_EQ(r.columnScores[static_cast<std::size_t>(r.bestCol)], std::optional<int>(r.bestScore));
+
+            int centreDistance = std::abs(r.bestCol - kWidth / 2);
+            for (int col = 0; col < kWidth; ++col) {
+                const auto& score = r.columnScores[static_cast<std::size_t>(col)];
+                CHECK_EQ(score.has_value(), pos->canPlay(col));
+                if (!score) continue;
+                CHECK(*score <= r.bestScore);
+                if (*score == r.bestScore) CHECK(std::abs(col - kWidth / 2) >= centreDistance);
+            }
+        }
+    }
 }
