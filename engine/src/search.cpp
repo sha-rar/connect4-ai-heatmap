@@ -1,5 +1,7 @@
 #include "connect4/search.hpp"
 
+#include "connect4/book.hpp"
+
 #include <algorithm>
 #include <bit>
 #include <chrono>
@@ -182,6 +184,27 @@ private:
     std::uint64_t nodes_ = 0;
 };
 
+/// Fill bestCol and bestScore from the column scores: the highest score,
+/// ties going to the more central column. The heatmap and the chosen move
+/// therefore always agree.
+void pickBest(SearchResult& result) {
+    int bestScore = -kInfinity;
+    result.bestCol = -1;
+    for (const int col : kMoveOrder) {
+        const auto& score = result.columnScores[static_cast<std::size_t>(col)];
+        if (score && *score > bestScore) {
+            bestScore = *score;
+            result.bestCol = col;
+        }
+    }
+    result.bestScore = result.bestCol >= 0 ? bestScore : 0;
+}
+
+int elapsedMs(Clock::time_point start) {
+    return static_cast<int>(
+        std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - start).count());
+}
+
 }  // namespace
 
 SearchResult Engine::chooseMove(const Position& pos, const SearchOptions& options) {
@@ -189,9 +212,21 @@ SearchResult Engine::chooseMove(const Position& pos, const SearchOptions& option
     SearchResult result;
     if (pos.lastMoverWon() || pos.isFull()) return result;
 
-    tt_.newSearch();
     const int remaining = kCells - pos.moves();
     const int maxDepth = std::clamp(options.depth, 1, remaining);
+
+    if (options.useBook) {
+        if (const auto hit = lookupBook(pos); hit && hit->depth >= maxDepth) {
+            result.columnScores = hit->columnScores;
+            result.usedDepth = hit->depth;
+            result.opening = true;
+            pickBest(result);
+            result.ms = elapsedMs(start);
+            return result;
+        }
+    }
+
+    tt_.newSearch();
     const bool hasDeadline = options.timeLimitMs > 0;
     Searcher searcher(tt_, pos.toMove(), start + std::chrono::milliseconds(options.timeLimitMs),
                       hasDeadline);
@@ -212,19 +247,9 @@ SearchResult Engine::chooseMove(const Position& pos, const SearchOptions& option
         result.usedDepth = depth;
     }
 
-    int bestScore = -kInfinity;
-    for (const int col : kMoveOrder) {  // ties go to the more central column
-        const auto& score = result.columnScores[static_cast<std::size_t>(col)];
-        if (score && *score > bestScore) {
-            bestScore = *score;
-            result.bestCol = col;
-        }
-    }
-
-    result.bestScore = bestScore;
+    pickBest(result);
     result.nodes = searcher.nodes();
-    result.ms = static_cast<int>(
-        std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - start).count());
+    result.ms = elapsedMs(start);
     return result;
 }
 

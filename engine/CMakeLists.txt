@@ -21,6 +21,7 @@ add_library(connect4_engine
   src/evaluate.cpp
   src/search.cpp
   src/tt.cpp
+  src/book.cpp
 )
 target_include_directories(connect4_engine PUBLIC include)
 
@@ -83,4 +84,10 @@ option(CONNECT4_BUILD_BENCH "Build the engine benchmark" ON)
 if(CONNECT4_BUILD_BENCH)
   add_executable(connect4_bench bench/benchmark.cpp)
   target_link_libraries(connect4_bench PRIVATE connect4_engine connect4_support)
+endif()
+
+option(CONNECT4_BUILD_TOOLS "Build the opening-book generator" ON)
+if(CONNECT4_BUILD_TOOLS AND NOT EMSCRIPTEN)
+  add_executable(connect4_make_book tools/make_book.cpp)
+  target_link_libraries(connect4_make_book PRIVATE connect4_engine)
 endif()

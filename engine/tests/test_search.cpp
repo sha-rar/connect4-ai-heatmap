@@ -55,8 +55,8 @@ Position fixturePosition(const PositionFixture& f) {
     return *pos;
 }
 
-/// Options for an exact fixed-depth search with no time limit.
-SearchOptions fixed(int depth) { return {depth, 0}; }
+/// Options for an exact fixed-depth search: no time limit, no opening book.
+SearchOptions fixed(int depth) { return {depth, 0, false}; }
 
 /// One engine for the whole test binary, as the app would use it.
 Engine& engine() {

@@ -77,7 +77,7 @@ int main(int argc, char** argv) {
     std::printf("| -------- | ----: | ----: | --------: | -------: |\n");
     for (const auto& [id, pos] : positions) {
         for (int depth = 1; depth <= maxDepth; ++depth) {
-            const auto [result, ms] = timed(engine, pos, {depth, 0}, runs);
+            const auto [result, ms] = timed(engine, pos, {depth, 0, false}, runs);
             const double rate = ms > 0 ? static_cast<double>(result.nodes) / ms : 0.0;
             std::printf("| %s | %d | %llu | %.1f | %.0f |\n", id.c_str(), depth,
                         static_cast<unsigned long long>(result.nodes), ms, rate);

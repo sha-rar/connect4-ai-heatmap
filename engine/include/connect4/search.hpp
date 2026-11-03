@@ -18,6 +18,10 @@ struct SearchOptions {
     /// Time budget in milliseconds; 0 or less means no limit. Depth 1 always
     /// completes, so a very short budget can be exceeded.
     int timeLimitMs = 250;
+    /// Answer from the opening book when it covers the position at least as
+    /// deeply as `depth`. The book holds precomputed search results, so the
+    /// answer equals a fresh search at the book's depth, only instantly.
+    bool useBook = true;
 };
 
 /// Output of chooseMove(); mirrors ChooseMoveResult in docs/api.md.
@@ -36,7 +40,8 @@ struct SearchResult {
     int usedDepth = 0;
     /// True when the time limit stopped the search before the requested depth.
     bool timedOut = false;
-    /// True when the move came from an opening book (never, for now).
+    /// True when the result came from the opening book (nodes is then 0 and
+    /// usedDepth is the book's depth).
     bool opening = false;
 };
 
