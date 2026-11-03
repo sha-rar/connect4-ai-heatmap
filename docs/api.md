@@ -60,6 +60,7 @@ The HTTP endpoint wraps the result as `{ ok: true, ...result }`, or `{ ok: false
 These are documented so the C++ engine can be measured against them, not copied:
 
 - **Shortcuts return sparse heatmaps.** Opening-book and immediate win/block moves return `null` for every column except `bestCol`, and report `nodes: 0`.
+- **Blocks are scored as wins.** The block shortcut reports `WIN_SCORE` for the blocking column, even when the position is lost (see the `double-threat` fixture).
 - **Time cut-offs leak partial scores.** When the time limit expires, `search()` returns a heuristic score mid-search, stores it in the transposition table as if complete, and later root columns stay `null`.
 - **`usedDepth` is the requested depth,** not the deepest completed iteration.
 
