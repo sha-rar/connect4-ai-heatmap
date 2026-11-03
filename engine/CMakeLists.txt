@@ -13,6 +13,7 @@ endif()
 add_library(connect4_engine
   src/position.cpp
   src/evaluate.cpp
+  src/search.cpp
 )
 target_include_directories(connect4_engine PUBLIC include)
 
@@ -40,6 +41,7 @@ if(CONNECT4_BUILD_TESTS)
     tests/harness.cpp
     tests/test_position.cpp
     tests/test_evaluate.cpp
+    tests/test_search.cpp
   )
   target_link_libraries(connect4_tests PRIVATE connect4_engine connect4_support)
   add_test(NAME connect4_tests COMMAND connect4_tests)

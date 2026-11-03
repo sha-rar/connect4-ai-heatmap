@@ -1,0 +1,155 @@
+#include <algorithm>
+#include <string>
+
+#include "connect4/search.hpp"
+#include "fixtures.hpp"
+#include "harness.hpp"
+
+using namespace connect4;
+using namespace connect4::support;
+
+namespace {
+
+/// Plain minimax with no pruning, from the root player's perspective, using
+/// the same scoring rules as the engine. Slow, but obviously correct.
+int referenceMinimax(const Position& pos, int depth, int ply, int rootPlayer) {
+    if (pos.isFull()) return 0;
+    if (depth <= 0) return evaluate(pos, rootPlayer);
+
+    const bool maximising = pos.toMove() == rootPlayer;
+    int best = maximising ? -kWinScore - 1 : kWinScore + 1;
+    for (int col = 0; col < kWidth; ++col) {
+        if (!pos.canPlay(col)) continue;
+        int score;
+        if (pos.isWinningMove(col)) {
+            score = maximising ? kWinScore - (ply + 1) : -kWinScore + (ply + 1);
+        } else {
+            Position child = pos;
+            child.play(col);
+            score = referenceMinimax(child, depth - 1, ply + 1, rootPlayer);
+        }
+        best = maximising ? std::max(best, score) : std::min(best, score);
+    }
+    return best;
+}
+
+/// Reference root scores, matching chooseMove()'s column scores.
+std::array<std::optional<int>, kWidth> referenceColumnScores(const Position& pos, int depth) {
+    std::array<std::optional<int>, kWidth> scores{};
+    for (int col = 0; col < kWidth; ++col) {
+        if (!pos.canPlay(col)) continue;
+        if (pos.isWinningMove(col)) {
+            scores[static_cast<std::size_t>(col)] = kWinScore;
+            continue;
+        }
+        Position child = pos;
+        child.play(col);
+        scores[static_cast<std::size_t>(col)] = referenceMinimax(child, depth - 1, 1, pos.toMove());
+    }
+    return scores;
+}
+
+Position fixturePosition(const PositionFixture& f) {
+    auto pos = Position::fromCells(rowsToCells(f.rows), f.toMove);
+    REQUIRE(pos.has_value());
+    return *pos;
+}
+
+bool isWin(int score) { return score >= kWinScore - kMaxPly; }
+
+std::string show(const std::array<std::optional<int>, kWidth>& scores) {
+    std::string out = "[";
+    for (std::size_t i = 0; i < scores.size(); ++i) {
+        if (i) out += ", ";
+        out += scores[i] ? std::to_string(*scores[i]) : "null";
+    }
+    return out + "]";
+}
+
+}  // namespace
+
+TEST_CASE(search_matches_reference_minimax) {
+    for (const auto& f : loadPositions()) {
+        for (const int depth : {1, 2, 3, 4, 5}) {
+            CONTEXT(f.id + " depth " + std::to_string(depth));
+            const Position pos = fixturePosition(f);
+            const auto result = chooseMove(pos, {depth});
+            const auto expected = referenceColumnScores(pos, depth);
+            CHECK_EQ(show(result.columnScores), show(expected));
+        }
+    }
+}
+
+TEST_CASE(search_result_obeys_contract) {
+    for (const auto& f : loadPositions()) {
+        CONTEXT(f.id);
+        const Position pos = fixturePosition(f);
+        const auto result = chooseMove(pos, {6});
+
+        REQUIRE(pos.canPlay(result.bestCol));
+        for (int col = 0; col < kWidth; ++col) {
+            const auto& score = result.columnScores[static_cast<std::size_t>(col)];
+            CHECK_EQ(score.has_value(), pos.canPlay(col));
+            if (score) CHECK(*score <= result.bestScore);
+        }
+        CHECK_EQ(result.columnScores[static_cast<std::size_t>(result.bestCol)], std::optional<int>(result.bestScore));
+        CHECK_EQ(result.usedDepth, 6);
+        CHECK(!result.opening);
+        CHECK(result.nodes > 0);
+    }
+}
+
+TEST_CASE(search_picks_expected_moves) {
+    for (const auto& f : loadPositions()) {
+        if (f.bestMoves.empty()) continue;
+        CONTEXT(f.id);
+        const auto result = chooseMove(fixturePosition(f), {6});
+        CHECK(std::find(f.bestMoves.begin(), f.bestMoves.end(), result.bestCol) != f.bestMoves.end());
+    }
+}
+
+TEST_CASE(search_scores_known_outcomes) {
+    for (const auto& f : loadPositions()) {
+        if (f.outcome.empty()) continue;
+        CONTEXT(f.id);
+        const auto result = chooseMove(fixturePosition(f), {6});
+        if (f.outcome == "win") CHECK(isWin(result.bestScore));
+        if (f.outcome == "draw") CHECK_EQ(result.bestScore, 0);
+        if (f.outcome == "loss") {
+            // Unlike the TypeScript shortcut, a forced block is not scored as a win.
+            for (const auto& score : result.columnScores) {
+                if (score) CHECK(*score <= -kWinScore + kMaxPly);
+            }
+        }
+    }
+}
+
+TEST_CASE(search_scores_immediate_win_as_win_score) {
+    const auto pos = Position::fromMoves("001122");
+    REQUIRE(pos.has_value());
+    const auto result = chooseMove(*pos, {4});
+    CHECK_EQ(result.bestCol, 3);
+    CHECK_EQ(result.bestScore, kWinScore);
+}
+
+TEST_CASE(search_wins_instead_of_blocking) {
+    // Player 1 has an open three on the bottom row (columns 1-3) while
+    // player 2 threatens column 6. Winning now beats blocking.
+    const auto pos = Position::fromMoves("162636");
+    REQUIRE(pos.has_value());
+    const auto result = chooseMove(*pos, {5});
+    CHECK_EQ(result.bestScore, kWinScore);
+    CHECK(result.bestCol == 0 || result.bestCol == 4);
+    // Blocking keeps the double threat: player 1 still wins on their next move.
+    CHECK_EQ(result.columnScores[6], std::optional<int>(kWinScore - 3));
+    // Ignoring both lets player 2 win straight away.
+    CHECK_EQ(result.columnScores[5], std::optional<int>(-kWinScore + 2));
+}
+
+TEST_CASE(search_on_finished_game_returns_no_move) {
+    const auto won = Position::fromMoves("0101010");
+    REQUIRE(won.has_value());
+    const auto result = chooseMove(*won, {4});
+    CHECK_EQ(result.bestCol, -1);
+    for (const auto& score : result.columnScores) CHECK(!score.has_value());
+}
