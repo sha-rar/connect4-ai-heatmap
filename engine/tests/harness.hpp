@@ -62,8 +62,8 @@ std::string show(const T& value) {
 
 #define CHECK_EQ(actual, expected)                                                       \
     do {                                                                                 \
-        const auto& c4_actual = (actual);                                                \
-        const auto& c4_expected = (expected);                                            \
+        const auto c4_actual = (actual);                                                 \
+        const auto c4_expected = (expected);                                             \
         if (!(c4_actual == c4_expected)) {                                               \
             ::c4test::reportFailure(__FILE__, __LINE__,                                  \
                                     "CHECK_EQ(" #actual ", " #expected "): got " +       \
