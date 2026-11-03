@@ -19,6 +19,8 @@ export type ColumnHeat = {
   intensity: number;
   /** For win/loss: moves the winning side needs, counting the next move as 1. */
   movesToMate: number | null;
+  /** True for the column the AI played; it always has the best score. */
+  chosen: boolean;
 };
 
 /** Convert plies-to-mate into moves made by the side that wins. */
@@ -26,13 +28,18 @@ function movesFromPlies(plies: number): number {
   return Math.max(1, Math.ceil(plies / 2));
 }
 
-export function classifyColumns(board: Board, scores: Array<number | null>): ColumnHeat[] {
+export function classifyColumns(
+  board: Board,
+  scores: Array<number | null>,
+  chosenCol: number | null = null
+): ColumnHeat[] {
   const heats: ColumnHeat[] = scores.map((score, col) => {
-    if (!isLegalMove(board, col)) return { kind: "illegal", score: null, intensity: 0, movesToMate: null };
-    if (score === null) return { kind: "unscored", score, intensity: 0, movesToMate: null };
-    if (isWinScore(score)) return { kind: "win", score, intensity: 0, movesToMate: movesFromPlies(pliesToMate(score)) };
-    if (isLossScore(score)) return { kind: "loss", score, intensity: 0, movesToMate: movesFromPlies(pliesToMate(score)) };
-    return { kind: "heuristic", score, intensity: 0, movesToMate: null };
+    const base = { score, intensity: 0, movesToMate: null, chosen: col === chosenCol };
+    if (!isLegalMove(board, col)) return { ...base, kind: "illegal", score: null };
+    if (score === null) return { ...base, kind: "unscored" };
+    if (isWinScore(score)) return { ...base, kind: "win", movesToMate: movesFromPlies(pliesToMate(score)) };
+    if (isLossScore(score)) return { ...base, kind: "loss", movesToMate: movesFromPlies(pliesToMate(score)) };
+    return { ...base, kind: "heuristic" };
   });
 
   // Normalise heuristic columns only, so mate scores do not flatten the range.
@@ -50,6 +57,11 @@ export function classifyColumns(board: Board, scores: Array<number | null>): Col
 
 /** Tooltip / accessible description for a column. `col` is zero-based. */
 export function describeColumn(heat: ColumnHeat, col: number): string {
+  const text = describeKind(heat, col);
+  return heat.chosen ? `${text} (AI's move)` : text;
+}
+
+function describeKind(heat: ColumnHeat, col: number): string {
   const name = `Column ${col + 1}`;
   const plural = (n: number) => (n === 1 ? "move" : "moves");
   switch (heat.kind) {

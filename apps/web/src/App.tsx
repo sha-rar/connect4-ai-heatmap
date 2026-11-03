@@ -69,7 +69,10 @@ export default function App() {
     return `Player ${currentPlayer}'s turn`;
   }, [status, winner, currentPlayer]);
 
-  const heat = useMemo(() => classifyColumns(board, columnScores), [board, columnScores]);
+  // Column the AI last played; its score is always the best in columnScores.
+  const [aiCol, setAiCol] = useState<number | null>(null);
+
+  const heat = useMemo(() => classifyColumns(board, columnScores, aiCol), [board, columnScores, aiCol]);
 
   function reset() {
     setBoard(makeEmptyBoard());
@@ -77,6 +80,7 @@ export default function App() {
     setWinner(0);
     setStatus("playing");
     setColumnScores(Array(COLS).fill(null));
+    setAiCol(null);
     setAiInfo(null);
     setAiError(null);
     setAiBusy(false);
@@ -136,6 +140,7 @@ export default function App() {
 
       setAiError(null);
       setColumnScores(resp.columnScores);
+      setAiCol(resp.bestCol);
       setAiInfo({
         nodes: resp.nodes,
         ms: resp.ms,
@@ -177,6 +182,7 @@ export default function App() {
 
     // Clear heatmap on human move
     setColumnScores(Array(COLS).fill(null));
+    setAiCol(null);
     setAiInfo(null);
 
     const nextBoard = res.board;
@@ -430,6 +436,7 @@ export default function App() {
                   style={{
                     ...styles.colButton,
                     ...columnColours(h),
+                    boxShadow: h.chosen ? "inset 0 0 0 2px rgba(255,255,255,0.85)" : undefined,
                     cursor: illegal ? "not-allowed" : "pointer",
                     opacity: status === "playing" && !aiBusy ? 1 : 0.65
                   }}
@@ -480,6 +487,10 @@ export default function App() {
               }}
             />
             full column
+          </span>
+          <span>
+            <span style={{ ...styles.swatch, boxShadow: "inset 0 0 0 2px rgba(255,255,255,0.85)" }} />
+            AI's move
           </span>
         </div>
       </div>

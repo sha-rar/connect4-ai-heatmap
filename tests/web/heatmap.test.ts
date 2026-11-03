@@ -73,3 +73,16 @@ describe("column labels", () => {
     expect([illegal, win, loss, heuristic, unscored].map(columnBadge)).toEqual(["Full", "W2", "L1", null, null]);
   });
 });
+
+describe("chosen column", () => {
+  it("marks only the AI's column, including after it fills up", () => {
+    const heats = classifyColumns(fullColumns, [null, 5, 1, 2, 3, 4, 5], 0);
+    expect(heats.map((h) => h.chosen)).toEqual([true, false, false, false, false, false, false]);
+    expect(heats[0].kind).toBe("illegal");
+    expect(describeColumn(heats[0], 0)).toBe("Column 1 is full (AI's move)");
+  });
+
+  it("marks nothing when no move was chosen", () => {
+    expect(classifyColumns(makeEmptyBoard(), Array(7).fill(null)).some((h) => h.chosen)).toBe(false);
+  });
+});
