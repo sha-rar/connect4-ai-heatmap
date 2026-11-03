@@ -20,7 +20,11 @@ struct TTEntry {
     std::int32_t score = 0;
     std::uint16_t generation = 0;  // 0 = empty
     std::uint8_t depth = 0;
-    Bound bound = Bound::Exact;
+    std::uint8_t packed = 0;  // bits 0-1: Bound, bits 2-4: best move + 1 (0 = none)
+
+    Bound bound() const { return static_cast<Bound>(packed & 0x3); }
+    /// Best move found when this entry was stored, or -1.
+    int bestMove() const { return ((packed >> 2) & 0x7) - 1; }
 };
 static_assert(sizeof(TTEntry) == 16);
 
@@ -42,11 +46,13 @@ public:
     /// Remove every entry.
     void clear();
 
-    /// Entry for `key` from the current search, or nullptr.
+    /// Entry for `key` from the current search, or nullptr. Callers must check
+    /// the entry's depth before trusting its score; the move is always usable
+    /// for ordering.
     const TTEntry* probe(Bitboard key) const;
 
     /// Store a result, keeping a deeper entry for the same slot if one exists.
-    void store(Bitboard key, int depth, int score, Bound bound);
+    void store(Bitboard key, int depth, int score, Bound bound, int bestMove);
 
     std::size_t capacity() const { return entries_.size(); }
 

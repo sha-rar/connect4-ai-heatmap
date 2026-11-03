@@ -1,6 +1,7 @@
 #include "connect4/search.hpp"
 
 #include <algorithm>
+#include <bit>
 #include <chrono>
 
 namespace connect4 {
@@ -19,6 +20,30 @@ constexpr int kInfinity = kWinScore + 1;
 constexpr std::uint64_t kTimeCheckInterval = 1024;
 
 using ColumnScores = std::array<std::optional<int>, kWidth>;
+
+/// Legal moves of `pos` in search order: the transposition-table move first,
+/// then moves creating the most winning cells, then centre-first. Ordering
+/// only affects speed, never the scores.
+int orderMoves(const Position& pos, int ttMove, std::array<int, kWidth>& out) {
+    std::array<int, kWidth> keys{};
+    int n = 0;
+    for (const int col : kMoveOrder) {
+        const Bitboard move = pos.moveBit(col);
+        if (move == 0) continue;
+        const int threats = std::popcount(winningCells(pos.current() | move, pos.mask() | move));
+        const int key = col == ttMove ? 1000 : threats;
+        // Insertion sort, stable so equal keys keep centre-first order.
+        int i = n++;
+        while (i > 0 && keys[static_cast<std::size_t>(i - 1)] < key) {
+            out[static_cast<std::size_t>(i)] = out[static_cast<std::size_t>(i - 1)];
+            keys[static_cast<std::size_t>(i)] = keys[static_cast<std::size_t>(i - 1)];
+            --i;
+        }
+        out[static_cast<std::size_t>(i)] = col;
+        keys[static_cast<std::size_t>(i)] = key;
+    }
+    return n;
+}
 
 class Searcher {
 public:
@@ -74,34 +99,44 @@ private:
         }
 
         const Bitboard key = pos.key();
-        if (const TTEntry* entry = tt_.probe(key); entry && entry->depth >= depth) {
-            switch (entry->bound) {
-                case Bound::Exact: return entry->score;
-                case Bound::Lower: alpha = std::max(alpha, entry->score); break;
-                case Bound::Upper: beta = std::min(beta, entry->score); break;
+        int ttMove = -1;
+        if (const TTEntry* entry = tt_.probe(key)) {
+            ttMove = entry->bestMove();
+            if (entry->depth >= depth) {
+                switch (entry->bound()) {
+                    case Bound::Exact: return entry->score;
+                    case Bound::Lower: alpha = std::max(alpha, entry->score); break;
+                    case Bound::Upper: beta = std::min(beta, entry->score); break;
+                }
+                if (alpha >= beta) return entry->score;
             }
-            if (alpha >= beta) return entry->score;
         }
         // Classify the result against the window actually searched, after
         // any narrowing from the table.
         const int alphaSearched = alpha;
 
+        // A win on this move is the best result available here.
+        if (pos.canWinNext()) {
+            ++nodes_;
+            return kWinScore - (ply + 1);
+        }
+
+        std::array<int, kWidth> moves{};
+        const int count = orderMoves(pos, ttMove, moves);
+
         int best = -kInfinity;
-        for (const int col : kMoveOrder) {
-            if (!pos.canPlay(col)) continue;
-
-            // A win on this move is the best result available here.
-            if (pos.isWinningMove(col)) {
-                ++nodes_;
-                return kWinScore - (ply + 1);
-            }
-
+        int bestMove = -1;
+        for (int i = 0; i < count; ++i) {
+            const int col = moves[static_cast<std::size_t>(i)];
             Position child = pos;
             child.play(col);
             const int score = -negamax(child, depth - 1, -beta, -alpha, ply + 1);
             if (stopped_) return 0;  // partial result: do not store
 
-            best = std::max(best, score);
+            if (score > best) {
+                best = score;
+                bestMove = col;
+            }
             alpha = std::max(alpha, best);
             if (alpha >= beta) break;
         }
@@ -109,7 +144,7 @@ private:
         const Bound bound = best <= alphaSearched ? Bound::Upper
                             : best >= beta        ? Bound::Lower
                                                   : Bound::Exact;
-        tt_.store(key, depth, best, bound);
+        tt_.store(key, depth, best, bound, bestMove);
         return best;
     }
 

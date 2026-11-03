@@ -34,7 +34,7 @@ const TTEntry* TranspositionTable::probe(Bitboard key) const {
     return &entry;
 }
 
-void TranspositionTable::store(Bitboard key, int depth, int score, Bound bound) {
+void TranspositionTable::store(Bitboard key, int depth, int score, Bound bound, int bestMove) {
     TTEntry& entry = entries_[indexOf(key)];
     const bool stale = entry.generation != generation_;
     if (!stale && depth < entry.depth) return;  // keep the deeper result
@@ -43,7 +43,7 @@ void TranspositionTable::store(Bitboard key, int depth, int score, Bound bound) 
     entry.score = score;
     entry.generation = generation_;
     entry.depth = static_cast<std::uint8_t>(depth);
-    entry.bound = bound;
+    entry.packed = static_cast<std::uint8_t>(static_cast<int>(bound) | ((bestMove + 1) << 2));
 }
 
 }  // namespace connect4

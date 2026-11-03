@@ -224,10 +224,11 @@ TEST_CASE(depth_is_clamped_to_the_end_of_the_game) {
 }
 
 TEST_CASE(time_limit_keeps_only_completed_iterations) {
-    // A full-game search cannot finish in 20 ms, so the search must stop
-    // early and report results identical to an exact search at usedDepth.
+    // A full-game search from these early positions cannot finish in 20 ms,
+    // so the search must stop early and report results identical to an exact
+    // search at usedDepth.
     for (const auto& f : loadPositions()) {
-        if (!f.hasTag("benchmark")) continue;
+        if (f.id != "empty" && f.id != "midgame-10" && f.id != "midgame-14") continue;
         CONTEXT(f.id);
         const Position pos = fixturePosition(f);
         Engine timed;
