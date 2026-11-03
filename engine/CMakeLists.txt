@@ -20,3 +20,25 @@ if(MSVC)
 else()
   target_compile_options(connect4_engine PRIVATE -Wall -Wextra -Wpedantic -Wconversion)
 endif()
+
+# Shared fixture loader for tests and benchmarks.
+add_library(connect4_support STATIC
+  support/json.cpp
+  support/fixtures.cpp
+)
+target_include_directories(connect4_support PUBLIC support)
+target_link_libraries(connect4_support PUBLIC connect4_engine)
+target_compile_definitions(connect4_support PRIVATE
+  CONNECT4_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../tests/fixtures"
+)
+
+option(CONNECT4_BUILD_TESTS "Build the engine tests" ON)
+if(CONNECT4_BUILD_TESTS)
+  enable_testing()
+  add_executable(connect4_tests
+    tests/harness.cpp
+    tests/test_position.cpp
+  )
+  target_link_libraries(connect4_tests PRIVATE connect4_engine connect4_support)
+  add_test(NAME connect4_tests COMMAND connect4_tests)
+endif()
