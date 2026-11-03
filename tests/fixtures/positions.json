@@ -118,7 +118,7 @@
     },
     {
       "id": "double-threat",
-      "description": "Player 2 threatens both ends of an open three; Player 1 is lost",
+      "description": "Player 2 threatens both ends of an open three; every move loses next turn",
       "rows": [
         ".......",
         ".......",
@@ -129,7 +129,6 @@
       ],
       "toMove": 1,
       "legalMoves": [0, 1, 2, 3, 4, 5, 6],
-      "bestMoves": [0, 4],
       "outcome": "loss",
       "tags": ["block", "loss"]
     },
