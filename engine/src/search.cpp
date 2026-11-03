@@ -21,14 +21,14 @@ constexpr std::uint64_t kTimeCheckInterval = 1024;
 
 using ColumnScores = std::array<std::optional<int>, kWidth>;
 
-/// Legal moves of `pos` in search order: the transposition-table move first,
+/// Moves of `pos` allowed by `allowed` (a mask of cells), in search order: the transposition-table move first,
 /// then moves creating the most winning cells, then centre-first. Ordering
 /// only affects speed, never the scores.
-int orderMoves(const Position& pos, int ttMove, std::array<int, kWidth>& out) {
+int orderMoves(const Position& pos, Bitboard allowed, int ttMove, std::array<int, kWidth>& out) {
     std::array<int, kWidth> keys{};
     int n = 0;
     for (const int col : kMoveOrder) {
-        const Bitboard move = pos.moveBit(col);
+        const Bitboard move = pos.moveBit(col) & allowed;
         if (move == 0) continue;
         const int threats = std::popcount(winningCells(pos.current() | move, pos.mask() | move));
         const int key = col == ttMove ? 1000 : threats;
@@ -98,6 +98,37 @@ private:
             return pos.toMove() == rootPlayer_ ? score : -score;
         }
 
+        // A win on this move is the best result available here.
+        if (pos.canWinNext()) {
+            ++nodes_;
+            return kWinScore - (ply + 1);
+        }
+
+        // Tactical pruning. Each rule only drops moves whose exact value is
+        // a loss on the opponent's next move, so scores are unchanged; it
+        // needs depth >= 2 so that loss is inside the search horizon.
+        Bitboard allowed = pos.playable();
+        if (depth >= 2) {
+            const int lossNextMove = -(kWinScore - (ply + 2));
+            const Bitboard opponentWins = pos.winningCellsForOpponent();
+            const Bitboard forced = allowed & opponentWins;
+            if (forced != 0) {
+                if ((forced & (forced - 1)) != 0) return lossNextMove;  // two threats: cannot block both
+                allowed = forced;                                       // must block
+            }
+            // Playing directly below an opponent's winning cell hands it over.
+            allowed &= ~(opponentWins >> 1);
+            if (allowed == 0) return lossNextMove;
+
+            // With no immediate win, the best possible result is winning with
+            // our next move after this one.
+            const int bestPossible = kWinScore - (ply + 3);
+            if (beta > bestPossible) {
+                beta = bestPossible;
+                if (alpha >= beta) return beta;
+            }
+        }
+
         const Bitboard key = pos.key();
         int ttMove = -1;
         if (const TTEntry* entry = tt_.probe(key)) {
@@ -115,14 +146,8 @@ private:
         // any narrowing from the table.
         const int alphaSearched = alpha;
 
-        // A win on this move is the best result available here.
-        if (pos.canWinNext()) {
-            ++nodes_;
-            return kWinScore - (ply + 1);
-        }
-
         std::array<int, kWidth> moves{};
-        const int count = orderMoves(pos, ttMove, moves);
+        const int count = orderMoves(pos, allowed, ttMove, moves);
 
         int best = -kInfinity;
         int bestMove = -1;

@@ -256,3 +256,22 @@ TEST_CASE(first_iteration_completes_even_with_tiny_limit) {
         CHECK_EQ(result.columnScores[static_cast<std::size_t>(col)].has_value(), pos.canPlay(col));
     }
 }
+
+TEST_CASE(search_matches_reference_on_varied_positions) {
+    // The evaluation fixtures include many tactical mid- and late-game
+    // positions, which exercise the forced-block and losing-move pruning.
+    int checked = 0;
+    for (const auto& f : loadEvaluations()) {
+        const Cells cells = rowsToCells(f.rows);
+        const auto pos = Position::fromCells(cells, impliedToMove(cells));
+        REQUIRE(pos.has_value());
+        if (pos->winner() != 0 || pos->isFull()) continue;
+        ++checked;
+        for (const int depth : {1, 2, 3, 4}) {
+            CONTEXT(f.id + " depth " + std::to_string(depth));
+            const auto result = chooseMove(*pos, fixed(depth));
+            CHECK_EQ(show(result.columnScores), show(referenceColumnScores(*pos, depth)));
+        }
+    }
+    CHECK(checked > 100);
+}
