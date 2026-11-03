@@ -37,7 +37,7 @@ export type ChooseMoveResult = {
   nodes: number;
   /** Wall-clock time spent, in milliseconds. */
   ms: number;
-  /** Depth the search was configured with. */
+  /** Deepest fully completed search depth (the TypeScript engine reports the requested depth). */
   usedDepth: number;
   /** True when the move came from the opening book. */
   opening: boolean;

@@ -36,7 +36,7 @@ Behaviour for positions that violate these preconditions is undefined.
 | `columnScores` | `(number \| null)[7]`   | Score per column from the mover's perspective. `null` = illegal (full) or not evaluated. |
 | `nodes`        | integer ≥ 0             | Search nodes visited. |
 | `ms`           | integer ≥ 0             | Wall-clock time spent. |
-| `usedDepth`    | integer                 | Depth the search was configured with. |
+| `usedDepth`    | integer                 | Deepest fully completed search depth; all scores come from it. |
 | `opening`      | boolean                 | `true` when the move came from the opening book. |
 
 The HTTP endpoint wraps the result as `{ ok: true, ...result }`, or `{ ok: false, error }` on invalid input (status 400).
@@ -65,3 +65,14 @@ These are documented so the C++ engine can be measured against them, not copied:
 - **`usedDepth` is the requested depth,** not the deepest completed iteration.
 
 The C++ engine must keep the input/output shape above, and should close these gaps (see Phase 2 and Phase 4 of the roadmap).
+
+## C++ engine status
+
+The native C++ engine ([engine/](../engine/README.md)) closes these gaps:
+
+- It has no shortcuts. Every legal column is scored by a full search, and a forced block scores as the loss or draw it really is.
+- Iterative deepening discards any iteration the time limit interrupts, so scores always come from a completed search.
+- `usedDepth` is the deepest completed iteration. The requested depth is capped at the number of empty cells.
+- `opening` is always `false` until an opening book is added (Phase 4).
+
+It is not wired into the website yet (Phase 3).
