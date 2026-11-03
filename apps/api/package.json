@@ -8,6 +8,7 @@
     "start": "node dist/server.js",
     "build": "tsc -p tsconfig.json",
     "bench": "tsx bench/benchmark.ts",
+    "compare": "tsx bench/compare.ts",
     "export:evaluations": "tsx scripts/export-evaluations.ts",
     "test": "echo \"no tests yet\"",
     "lint": "echo \"no lint yet\""
