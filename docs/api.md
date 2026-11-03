@@ -39,7 +39,7 @@ Behaviour for positions that violate these preconditions is undefined.
 | `usedDepth`    | integer                 | Deepest fully completed search depth; all scores come from it. |
 | `opening`      | boolean                 | `true` when the move came from the opening book. |
 
-The HTTP endpoint wraps the result as `{ ok: true, ...result }`, or `{ ok: false, error }` on invalid input (status 400).
+Both transports wrap the result as `{ ok: true, ...result }`, or `{ ok: false, error }` on failure. The HTTP endpoint uses status 400 for invalid input.
 
 ### Score scale
 
@@ -75,4 +75,4 @@ The native C++ engine ([engine/](../engine/README.md)) closes these gaps:
 - `usedDepth` is the deepest completed iteration. The requested depth is capped at the number of empty cells.
 - `opening` is always `false` until an opening book is added (Phase 4).
 
-It is not wired into the website yet (Phase 3).
+The website calls it through `chooseMove()` in [`apps/web/src/lib/api.ts`](../apps/web/src/lib/api.ts). That function posts the request to a Web Worker running the WebAssembly build, and never rejects: failures resolve as `{ ok: false, error }`, for example for an invalid position or a game that is already over. The worker's response also includes `timedOut: boolean`. The Express endpoint is no longer used by the website; it stays only until Phase 5.

@@ -1,6 +1,6 @@
 # Connect 4 engine (C++)
 
-Standalone C++20 engine that implements the [`chooseMove()` contract](../docs/api.md). It has no dependencies and does not need the website; Phase 3 of the roadmap compiles it to WebAssembly.
+Standalone C++20 engine that implements the [`chooseMove()` contract](../docs/api.md). It has no dependencies and does not need the website. The website runs it as WebAssembly in a Web Worker.
 
 ## Build, test and benchmark
 
@@ -24,6 +24,28 @@ The MinGW runtime is linked statically, so the built executables run without MSY
 
 Build options: `-DCONNECT4_BUILD_TESTS=OFF`, `-DCONNECT4_BUILD_BENCH=OFF`. Tests and the benchmark read `tests/fixtures/*.json`; set `CONNECT4_FIXTURES` to use another directory.
 
+## WebAssembly build
+
+The website uses `apps/web/src/engine/generated/connect4.{js,wasm}`. These files are committed, so the app builds without Emscripten. Rebuild them after changing the engine:
+
+```sh
+# Activate the Emscripten SDK first (emsdk_env), then:
+pnpm build:wasm
+```
+
+`scripts/build-wasm.mjs` runs `emcmake cmake` into `engine/build/wasm` (using MinGW Makefiles on Windows, or `CMAKE_GENERATOR` if set) and copies the output into the web app. Built and tested with Emscripten 6.0.13.
+
+**Git Bash on Windows:** `emsdk_env.sh` does not set up the environment there. Set it by hand:
+
+```sh
+export EMSDK=C:/Users/<you>/emsdk EM_CONFIG=C:/Users/<you>/emsdk/.emscripten
+export PATH=$EMSDK:$EMSDK/upstream/emscripten:$PATH:/c/msys64/ucrt64/bin   # mingw32-make
+```
+
+The module exposes a small C ABI from [`wasm/bindings.cpp`](wasm/bindings.cpp). JavaScript writes the 42 cells into an `Int32` buffer, calls `c4_choose_move(cells, player, depth, timeLimitMs, result)`, and reads 17 `Int32` values back. The layout is documented in the source and decoded by [`wasmEngine.ts`](../apps/web/src/engine/wasmEngine.ts). Both sides check the size with `c4_result_size()`. One engine instance, with a 16 MiB transposition table, lives for the lifetime of the worker.
+
+The module is built for `web,worker,node`, so `tests/web/wasm.test.ts` can run the WASM engine against the shared fixtures under Vitest. Because of this, Vite warns that `node:module` was externalized; that code path never runs in the browser.
+
 ## Layout
 
 | Path | Contents |
@@ -32,6 +54,7 @@ Build options: `-DCONNECT4_BUILD_TESTS=OFF`, `-DCONNECT4_BUILD_BENCH=OFF`. Tests
 | `include/connect4/evaluate.hpp` | Static evaluation, a port of `apps/api/src/engine/evaluate.ts` |
 | `include/connect4/tt.hpp` | Fixed-size transposition table |
 | `include/connect4/search.hpp` | `Engine::chooseMove()`: alpha-beta with iterative deepening |
+| `wasm/bindings.cpp` | C ABI exported to JavaScript (also compiled into the native tests) |
 | `support/` | Minimal JSON reader and fixture loader (tests and benchmark only) |
 | `tests/` | Dependency-free test harness and tests |
 | `bench/` | Benchmark, mirrors `apps/api/bench/benchmark.ts` |
