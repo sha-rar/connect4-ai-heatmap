@@ -9,6 +9,7 @@
     "dev:api": "pnpm --filter @connect4/api dev",
     "dev": "pnpm -r --parallel dev",
     "build": "pnpm -r build",
+    "build:wasm": "node scripts/build-wasm.mjs",
     "test": "pnpm -r test && vitest run",
     "test:reference": "vitest run",
     "lint": "pnpm -r lint",
