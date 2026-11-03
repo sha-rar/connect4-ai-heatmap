@@ -59,6 +59,25 @@ constexpr bool hasAlignment(Bitboard discs) {
     return false;
 }
 
+/// Empty cells that would complete four in a row for `discs`, given the
+/// occupied cells `mask`. Cells need not be playable yet (they may float).
+constexpr Bitboard winningCells(Bitboard discs, Bitboard mask) {
+    // Vertical: three discs directly below.
+    Bitboard r = (discs << 1) & (discs << 2) & (discs << 3);
+
+    // Horizontal and both diagonals: the empty cell can be at any of the four
+    // positions in the line.
+    for (const int shift : {kHeight + 1, kHeight, kHeight + 2}) {
+        Bitboard pair = (discs << shift) & (discs << (2 * shift));
+        r |= pair & (discs << (3 * shift));  // three to one side
+        r |= pair & (discs >> shift);        // two on one side, one on the other
+        pair = (discs >> shift) & (discs >> (2 * shift));
+        r |= pair & (discs << shift);
+        r |= pair & (discs >> (3 * shift));
+    }
+    return r & (kBoardMask ^ mask);
+}
+
 /// Connect 4 position stored as two 64-bit bitboards.
 class Position {
 public:
@@ -122,6 +141,18 @@ public:
 
     /// Bitmask of the cell each legal move would fill.
     Bitboard playable() const { return (mask_ + kBottomRow) & kBoardMask; }
+
+    /// Empty cells that would win for the player to move.
+    Bitboard winningCellsForCurrent() const { return winningCells(current_, mask_); }
+
+    /// Empty cells that would win for the player who moved last.
+    Bitboard winningCellsForOpponent() const { return winningCells(opponent(), mask_); }
+
+    /// True if the player to move has a winning move right now.
+    bool canWinNext() const { return (winningCellsForCurrent() & playable()) != 0; }
+
+    /// Cell `col` would be filled by, or 0 if the column is full.
+    Bitboard moveBit(int col) const { return (mask_ + bottomMask(col)) & columnMask(col); }
 
     /// True if the player who moved last has four in a row.
     bool lastMoverWon() const { return hasAlignment(opponent()); }

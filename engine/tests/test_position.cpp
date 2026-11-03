@@ -155,3 +155,41 @@ TEST_CASE(fixture_best_moves_that_win_are_winning_moves) {
         CHECK(pos->isWinningMove(f.bestMoves[0]));
     }
 }
+
+TEST_CASE(winning_cells_match_brute_force) {
+    // Every empty cell flagged by winningCells must complete a four, and
+    // every cell that would complete a four must be flagged.
+    for (const auto& f : loadEvaluations()) {
+        CONTEXT(f.id);
+        const Cells cells = rowsToCells(f.rows);
+        const auto pos = Position::fromCells(cells, impliedToMove(cells));
+        REQUIRE(pos.has_value());
+        for (const int player : {1, 2}) {
+            const Bitboard own = pos->discs(player);
+            if (hasAlignment(own)) continue;  // already won: every cell would "complete" a four
+            const Bitboard fast = winningCells(own, pos->mask());
+            Bitboard slow = 0;
+            for (int col = 0; col < kWidth; ++col) {
+                for (int h = 0; h < kHeight; ++h) {
+                    const Bitboard b = cellBit(col, h);
+                    if ((pos->mask() & b) == 0 && hasAlignment(own | b)) slow |= b;
+                }
+            }
+            CHECK_EQ(fast, slow);
+        }
+    }
+}
+
+TEST_CASE(can_win_next_matches_winning_moves) {
+    for (const auto& f : loadPositions()) {
+        CONTEXT(f.id);
+        const auto pos = Position::fromCells(rowsToCells(f.rows), f.toMove);
+        REQUIRE(pos.has_value());
+        bool any = false;
+        for (int col = 0; col < kWidth; ++col) any |= pos->canPlay(col) && pos->isWinningMove(col);
+        CHECK_EQ(pos->canWinNext(), any);
+        for (int col = 0; col < kWidth; ++col) {
+            if (!pos->canPlay(col)) CHECK_EQ(pos->moveBit(col), Bitboard{0});
+        }
+    }
+}
