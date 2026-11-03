@@ -1,0 +1,229 @@
+{
+  "$comment": "Rows are listed top (row 0) to bottom (row 5). '.' empty, '1' player 1, '2' player 2. bestMoves lists every acceptable answer; outcome is the known result for the player to move.",
+  "positions": [
+    {
+      "id": "empty",
+      "description": "Empty board; centre is the book move",
+      "rows": [
+        ".......",
+        ".......",
+        ".......",
+        ".......",
+        ".......",
+        "......."
+      ],
+      "toMove": 1,
+      "legalMoves": [0, 1, 2, 3, 4, 5, 6],
+      "bestMoves": [3],
+      "tags": ["opening", "legal-moves"]
+    },
+    {
+      "id": "win-horizontal",
+      "description": "Player 1 completes a bottom-row four",
+      "rows": [
+        ".......",
+        ".......",
+        ".......",
+        ".......",
+        "222....",
+        "111...."
+      ],
+      "toMove": 1,
+      "legalMoves": [0, 1, 2, 3, 4, 5, 6],
+      "bestMoves": [3],
+      "outcome": "win",
+      "tags": ["win"]
+    },
+    {
+      "id": "win-vertical",
+      "description": "Player 2 completes a vertical four in column 6",
+      "rows": [
+        ".......",
+        ".......",
+        ".......",
+        "......2",
+        "1.....2",
+        "1.1.1.2"
+      ],
+      "toMove": 2,
+      "legalMoves": [0, 1, 2, 3, 4, 5, 6],
+      "bestMoves": [6],
+      "outcome": "win",
+      "tags": ["win"]
+    },
+    {
+      "id": "win-diagonal",
+      "description": "Player 1 completes a rising diagonal at (2,3)",
+      "rows": [
+        ".......",
+        ".......",
+        ".......",
+        "..12...",
+        ".112...",
+        "1221..2"
+      ],
+      "toMove": 1,
+      "legalMoves": [0, 1, 2, 3, 4, 5, 6],
+      "bestMoves": [3],
+      "outcome": "win",
+      "tags": ["win"]
+    },
+    {
+      "id": "block-horizontal",
+      "description": "Player 2 must block Player 1's bottom-row three",
+      "rows": [
+        ".......",
+        ".......",
+        ".......",
+        ".......",
+        "22.....",
+        "111...."
+      ],
+      "toMove": 2,
+      "legalMoves": [0, 1, 2, 3, 4, 5, 6],
+      "bestMoves": [3],
+      "tags": ["block"]
+    },
+    {
+      "id": "block-vertical",
+      "description": "Player 1 must block Player 2's vertical three in column 0",
+      "rows": [
+        ".......",
+        ".......",
+        ".......",
+        "2......",
+        "2.1....",
+        "211...."
+      ],
+      "toMove": 1,
+      "legalMoves": [0, 1, 2, 3, 4, 5, 6],
+      "bestMoves": [0],
+      "tags": ["block"]
+    },
+    {
+      "id": "block-diagonal",
+      "description": "Player 2 must block Player 1's rising diagonal at (2,3)",
+      "rows": [
+        ".......",
+        ".......",
+        ".......",
+        "..12...",
+        ".112...",
+        "1221..."
+      ],
+      "toMove": 2,
+      "legalMoves": [0, 1, 2, 3, 4, 5, 6],
+      "bestMoves": [3],
+      "tags": ["block"]
+    },
+    {
+      "id": "double-threat",
+      "description": "Player 2 threatens both ends of an open three; Player 1 is lost",
+      "rows": [
+        ".......",
+        ".......",
+        ".......",
+        ".......",
+        ".11....",
+        ".222..1"
+      ],
+      "toMove": 1,
+      "legalMoves": [0, 1, 2, 3, 4, 5, 6],
+      "bestMoves": [0, 4],
+      "outcome": "loss",
+      "tags": ["block", "loss"]
+    },
+    {
+      "id": "full-columns",
+      "description": "Columns 0, 1 and 6 are full and must never be chosen",
+      "rows": [
+        "12....1",
+        "21....2",
+        "12....1",
+        "21....2",
+        "12....1",
+        "21....2"
+      ],
+      "toMove": 1,
+      "legalMoves": [2, 3, 4, 5],
+      "tags": ["full-column", "legal-moves"]
+    },
+    {
+      "id": "last-move-draw",
+      "description": "One empty cell left; the only move draws the game",
+      "rows": [
+        "112.112",
+        "2211221",
+        "1122112",
+        "2211221",
+        "1122112",
+        "2211221"
+      ],
+      "toMove": 2,
+      "legalMoves": [3],
+      "bestMoves": [3],
+      "outcome": "draw",
+      "tags": ["draw", "full-column", "legal-moves"]
+    },
+    {
+      "id": "midgame-10",
+      "description": "Quiet position after 10 plies",
+      "rows": [
+        ".......",
+        ".......",
+        ".......",
+        ".1.2...",
+        ".2.1...",
+        ".121122"
+      ],
+      "toMove": 1,
+      "legalMoves": [0, 1, 2, 3, 4, 5, 6],
+      "tags": ["midgame", "benchmark"]
+    },
+    {
+      "id": "midgame-14",
+      "description": "Quiet position after 14 plies",
+      "rows": [
+        ".......",
+        ".......",
+        ".2.....",
+        ".12....",
+        ".211.2.",
+        "2122111"
+      ],
+      "toMove": 1,
+      "legalMoves": [0, 1, 2, 3, 4, 5, 6],
+      "tags": ["midgame", "benchmark"]
+    },
+    {
+      "id": "midgame-18",
+      "description": "Quiet position after 18 plies; column 3 is full",
+      "rows": [
+        "...2...",
+        "...12..",
+        "...21..",
+        "...21..",
+        "..1221.",
+        "1121212"
+      ],
+      "toMove": 1,
+      "legalMoves": [0, 1, 2, 4, 5, 6],
+      "tags": ["midgame", "benchmark", "full-column"]
+    },
+    {
+      "id": "midgame-22",
+      "description": "Quiet position after 22 plies; columns 1 and 2 are full",
+      "rows": [
+        ".21....",
+        ".12....",
+        ".112...",
+        "2221...",
+        "2112.2.",
+        "1122.11"
+      ],
+      "toMove": 1,
+      "legalMoves": [0, 3, 4, 5, 6],
+      "tags": ["midgame", "benchmark", "full-column"]
+    }
+  ]
+}
