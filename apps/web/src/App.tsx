@@ -6,19 +6,30 @@ import { makeEmptyBoard, applyMove, getCell, isLegalMove } from "@connect4/core"
 import { getStatus } from "@connect4/core";
 
 import { chooseMove } from "./lib/api";
+import type { ColumnHeat } from "./lib/heatmap";
+import { classifyColumns, columnBadge, describeColumn } from "./lib/heatmap";
 
-function normaliseScores(scores: Array<number | null>) {
-  const vals = scores.filter((x): x is number => typeof x === "number");
-  if (vals.length === 0) return Array(scores.length).fill(0);
-
-  const min = Math.min(...vals);
-  const max = Math.max(...vals);
-  const span = max - min || 1;
-
-  return scores.map((s) => {
-    if (typeof s !== "number") return 0;
-    return (s - min) / span; // 0..1
-  });
+// Overlay colours per column kind; see docs/heatmap.md.
+function columnColours(heat: ColumnHeat): { background: string; borderColor: string } {
+  switch (heat.kind) {
+    case "illegal":
+      return {
+        background:
+          "repeating-linear-gradient(135deg, rgba(0,0,0,0.35) 0 6px, rgba(255,255,255,0.04) 6px 12px)",
+        borderColor: "rgba(255,255,255,0.08)"
+      };
+    case "win":
+      return { background: "rgba(64, 200, 120, 0.30)", borderColor: "rgba(64, 200, 120, 0.85)" };
+    case "loss":
+      return { background: "rgba(255, 90, 90, 0.26)", borderColor: "rgba(255, 90, 90, 0.80)" };
+    case "heuristic":
+      return {
+        background: `rgba(80, 190, 255, ${0.06 + heat.intensity * 0.22})`,
+        borderColor: `rgba(80, 190, 255, ${heat.intensity * 0.55})`
+      };
+    case "unscored":
+      return { background: "transparent", borderColor: "rgba(255,255,255,0.0)" };
+  }
 }
 
 export default function App() {
@@ -52,7 +63,7 @@ export default function App() {
     return `Player ${currentPlayer}'s turn`;
   }, [status, winner, currentPlayer]);
 
-  const heat = useMemo(() => normaliseScores(columnScores), [columnScores]);
+  const heat = useMemo(() => classifyColumns(board, columnScores), [board, columnScores]);
 
   function reset() {
     setBoard(makeEmptyBoard());
@@ -237,7 +248,35 @@ export default function App() {
       border: "1px solid rgba(255,255,255,0.0)",
       background: "transparent",
       cursor: "pointer",
-      borderRadius: 12
+      borderRadius: 12,
+      display: "flex",
+      alignItems: "flex-start",
+      justifyContent: "center",
+      padding: "4px 0",
+      color: "#e7eefc"
+    },
+    badge: {
+      fontSize: 11,
+      fontWeight: 700,
+      padding: "1px 6px",
+      borderRadius: 999,
+      background: "rgba(0,0,0,0.55)"
+    },
+    legend: {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 12,
+      marginTop: 10,
+      fontSize: 12,
+      opacity: 0.85
+    },
+    swatch: {
+      display: "inline-block",
+      width: 10,
+      height: 10,
+      borderRadius: 3,
+      marginRight: 6,
+      verticalAlign: "middle"
     },
 
     controls: {
@@ -363,29 +402,27 @@ export default function App() {
         <div style={styles.gridWrap}>
           {/* Click overlay for dropping + heatmap */}
           <div style={styles.columnsOverlay}>
-            {Array.from({ length: COLS }, (_, c) => {
-              const intensity = heat[c]; // 0..1
-
-              const bg = `rgba(80, 190, 255, ${0.06 + intensity * 0.22})`;
-              const outline = `rgba(80, 190, 255, ${intensity * 0.55})`;
+            {heat.map((h, c) => {
+              const illegal = h.kind === "illegal";
+              const badge = columnBadge(h);
+              const description = describeColumn(h, c);
 
               return (
                 <button
                   key={c}
                   style={{
                     ...styles.colButton,
-                    background: columnScores[c] === null ? "transparent" : bg,
-                    borderColor: columnScores[c] === null ? "rgba(255,255,255,0.0)" : outline,
+                    ...columnColours(h),
+                    cursor: illegal ? "not-allowed" : "pointer",
                     opacity: status === "playing" && !aiBusy ? 1 : 0.65
                   }}
+                  disabled={illegal}
                   onClick={() => onDropHuman(c)}
-                  aria-label={`Drop in column ${c + 1}`}
-                  title={
-                    columnScores[c] === null
-                      ? `Drop in column ${c + 1}`
-                      : `Column ${c + 1} score: ${columnScores[c]?.toFixed(0)}`
-                  }
-                />
+                  aria-label={description}
+                  title={description}
+                >
+                  {badge ? <span style={styles.badge}>{badge}</span> : null}
+                </button>
               );
             })}
           </div>
@@ -402,6 +439,31 @@ export default function App() {
               })
             )}
           </div>
+        </div>
+
+        <div style={styles.legend}>
+          <span>
+            <span style={{ ...styles.swatch, background: "rgba(64, 200, 120, 0.85)" }} />
+            W<i>n</i> forced win in <i>n</i>
+          </span>
+          <span>
+            <span style={{ ...styles.swatch, background: "rgba(255, 90, 90, 0.80)" }} />
+            L<i>n</i> forced loss in <i>n</i>
+          </span>
+          <span>
+            <span style={{ ...styles.swatch, background: "rgba(80, 190, 255, 0.55)" }} />
+            stronger evaluation
+          </span>
+          <span>
+            <span
+              style={{
+                ...styles.swatch,
+                background:
+                  "repeating-linear-gradient(135deg, rgba(0,0,0,0.6) 0 3px, rgba(255,255,255,0.25) 3px 6px)"
+              }}
+            />
+            full column
+          </span>
         </div>
       </div>
     </div>
