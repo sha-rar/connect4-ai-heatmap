@@ -8,7 +8,8 @@
     "dev:api": "pnpm --filter @connect4/api dev",
     "dev": "pnpm -r --parallel dev",
     "build": "pnpm -r build",
-    "test": "pnpm -r test",
+    "test": "pnpm -r test && vitest run",
+    "test:reference": "vitest run",
     "lint": "pnpm -r lint",
     "format": "prettier -w ."
   },
