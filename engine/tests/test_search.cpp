@@ -55,6 +55,9 @@ Position fixturePosition(const PositionFixture& f) {
     return *pos;
 }
 
+/// Options for an exact fixed-depth search with no time limit.
+SearchOptions fixed(int depth) { return {depth, 0}; }
+
 /// One engine for the whole test binary, as the app would use it.
 Engine& engine() {
     static Engine instance;
@@ -83,7 +86,7 @@ TEST_CASE(search_matches_reference_minimax) {
         for (const int depth : {1, 2, 3, 4, 5}) {
             CONTEXT(f.id + " depth " + std::to_string(depth));
             const Position pos = fixturePosition(f);
-            const auto result = chooseMove(pos, {depth});
+            const auto result = chooseMove(pos, fixed(depth));
             const auto expected = referenceColumnScores(pos, depth);
             CHECK_EQ(show(result.columnScores), show(expected));
         }
@@ -94,7 +97,7 @@ TEST_CASE(search_result_obeys_contract) {
     for (const auto& f : loadPositions()) {
         CONTEXT(f.id);
         const Position pos = fixturePosition(f);
-        const auto result = chooseMove(pos, {6});
+        const auto result = chooseMove(pos, fixed(6));
 
         REQUIRE(pos.canPlay(result.bestCol));
         for (int col = 0; col < kWidth; ++col) {
@@ -103,7 +106,7 @@ TEST_CASE(search_result_obeys_contract) {
             if (score) CHECK(*score <= result.bestScore);
         }
         CHECK_EQ(result.columnScores[static_cast<std::size_t>(result.bestCol)], std::optional<int>(result.bestScore));
-        CHECK_EQ(result.usedDepth, 6);
+        CHECK_EQ(result.usedDepth, std::min(6, kCells - pos.moves()));
         CHECK(!result.opening);
         CHECK(result.nodes > 0);
     }
@@ -113,7 +116,7 @@ TEST_CASE(search_picks_expected_moves) {
     for (const auto& f : loadPositions()) {
         if (f.bestMoves.empty()) continue;
         CONTEXT(f.id);
-        const auto result = chooseMove(fixturePosition(f), {6});
+        const auto result = chooseMove(fixturePosition(f), fixed(6));
         CHECK(std::find(f.bestMoves.begin(), f.bestMoves.end(), result.bestCol) != f.bestMoves.end());
     }
 }
@@ -122,7 +125,7 @@ TEST_CASE(search_scores_known_outcomes) {
     for (const auto& f : loadPositions()) {
         if (f.outcome.empty()) continue;
         CONTEXT(f.id);
-        const auto result = chooseMove(fixturePosition(f), {6});
+        const auto result = chooseMove(fixturePosition(f), fixed(6));
         if (f.outcome == "win") CHECK(isWin(result.bestScore));
         if (f.outcome == "draw") CHECK_EQ(result.bestScore, 0);
         if (f.outcome == "loss") {
@@ -137,7 +140,7 @@ TEST_CASE(search_scores_known_outcomes) {
 TEST_CASE(search_scores_immediate_win_as_win_score) {
     const auto pos = Position::fromMoves("001122");
     REQUIRE(pos.has_value());
-    const auto result = chooseMove(*pos, {4});
+    const auto result = chooseMove(*pos, fixed(4));
     CHECK_EQ(result.bestCol, 3);
     CHECK_EQ(result.bestScore, kWinScore);
 }
@@ -147,7 +150,7 @@ TEST_CASE(search_wins_instead_of_blocking) {
     // player 2 threatens column 6. Winning now beats blocking.
     const auto pos = Position::fromMoves("162636");
     REQUIRE(pos.has_value());
-    const auto result = chooseMove(*pos, {5});
+    const auto result = chooseMove(*pos, fixed(5));
     CHECK_EQ(result.bestScore, kWinScore);
     CHECK(result.bestCol == 0 || result.bestCol == 4);
     // Blocking keeps the double threat: player 1 still wins on their next move.
@@ -159,7 +162,7 @@ TEST_CASE(search_wins_instead_of_blocking) {
 TEST_CASE(search_on_finished_game_returns_no_move) {
     const auto won = Position::fromMoves("0101010");
     REQUIRE(won.has_value());
-    const auto result = chooseMove(*won, {4});
+    const auto result = chooseMove(*won, fixed(4));
     CHECK_EQ(result.bestCol, -1);
     for (const auto& score : result.columnScores) CHECK(!score.has_value());
 }
@@ -172,8 +175,8 @@ TEST_CASE(transposition_table_size_does_not_change_scores) {
     for (const auto& f : loadPositions()) {
         CONTEXT(f.id);
         const Position pos = fixturePosition(f);
-        const auto a = tiny.chooseMove(pos, {7});
-        const auto b = large.chooseMove(pos, {7});
+        const auto a = tiny.chooseMove(pos, fixed(7));
+        const auto b = large.chooseMove(pos, fixed(7));
         CHECK_EQ(show(a.columnScores), show(b.columnScores));
         CHECK_EQ(a.bestCol, b.bestCol);
         CHECK(b.nodes <= a.nodes);
@@ -187,7 +190,7 @@ TEST_CASE(transposition_table_matches_reference_at_depth_7) {
         const auto it = std::find_if(fixtures.begin(), fixtures.end(), [&](const auto& f) { return f.id == id; });
         REQUIRE(it != fixtures.end());
         const Position pos = fixturePosition(*it);
-        CHECK_EQ(show(chooseMove(pos, {7}).columnScores), show(referenceColumnScores(pos, 7)));
+        CHECK_EQ(show(chooseMove(pos, fixed(7)).columnScores), show(referenceColumnScores(pos, 7)));
     }
 }
 
@@ -196,9 +199,59 @@ TEST_CASE(reusing_an_engine_gives_the_same_result) {
     for (const auto& f : loadPositions()) {
         CONTEXT(f.id);
         const Position pos = fixturePosition(f);
-        const auto reused = chooseMove(pos, {6});
-        const auto first = fresh.chooseMove(pos, {6});
+        const auto reused = chooseMove(pos, fixed(6));
+        const auto first = fresh.chooseMove(pos, fixed(6));
         fresh.clear();
         CHECK_EQ(show(reused.columnScores), show(first.columnScores));
+    }
+}
+
+TEST_CASE(iterative_deepening_reports_completed_depth) {
+    const auto pos = fixturePosition(loadPositions().front());
+    const auto result = chooseMove(pos, fixed(8));
+    CHECK_EQ(result.usedDepth, 8);
+    CHECK(!result.timedOut);
+}
+
+TEST_CASE(depth_is_clamped_to_the_end_of_the_game) {
+    for (const auto& f : loadPositions()) {
+        if (f.id != "last-move-draw") continue;
+        const auto result = chooseMove(fixturePosition(f), fixed(12));
+        CHECK_EQ(result.usedDepth, 1);
+        CHECK(!result.timedOut);
+        CHECK_EQ(result.bestScore, 0);
+    }
+}
+
+TEST_CASE(time_limit_keeps_only_completed_iterations) {
+    // A full-game search cannot finish in 20 ms, so the search must stop
+    // early and report results identical to an exact search at usedDepth.
+    for (const auto& f : loadPositions()) {
+        if (!f.hasTag("benchmark")) continue;
+        CONTEXT(f.id);
+        const Position pos = fixturePosition(f);
+        Engine timed;
+        const auto limited = timed.chooseMove(pos, {kMaxPly, 20});
+
+        CHECK(limited.timedOut);
+        CHECK(limited.usedDepth >= 1);
+        CHECK(limited.usedDepth < kCells - pos.moves());
+        CHECK(limited.ms < 20 + 100);  // generous slack for slow machines
+
+        Engine exact;
+        const auto reference = exact.chooseMove(pos, fixed(limited.usedDepth));
+        CHECK_EQ(show(limited.columnScores), show(reference.columnScores));
+        CHECK_EQ(limited.bestCol, reference.bestCol);
+    }
+}
+
+TEST_CASE(first_iteration_completes_even_with_tiny_limit) {
+    const auto pos = fixturePosition(loadPositions().front());
+    Engine timed;
+    const auto result = timed.chooseMove(pos, {kMaxPly, 1});
+    CHECK(result.usedDepth >= 1);
+    CHECK(pos.canPlay(result.bestCol));
+    for (int col = 0; col < kWidth; ++col) {
+        CHECK_EQ(result.columnScores[static_cast<std::size_t>(col)].has_value(), pos.canPlay(col));
     }
 }

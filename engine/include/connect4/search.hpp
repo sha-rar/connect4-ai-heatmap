@@ -12,8 +12,12 @@ namespace connect4 {
 
 /// Inputs of chooseMove(); mirrors ChooseMoveOptions in docs/api.md.
 struct SearchOptions {
-    /// Search depth in plies, counting the root move. Clamped to at least 1.
+    /// Maximum search depth in plies, counting the root move. Clamped to
+    /// [1, empty cells]; searching past the end of the game changes nothing.
     int depth = 6;
+    /// Time budget in milliseconds; 0 or less means no limit. Depth 1 always
+    /// completes, so a very short budget can be exceeded.
+    int timeLimitMs = 250;
 };
 
 /// Output of chooseMove(); mirrors ChooseMoveResult in docs/api.md.
@@ -28,8 +32,10 @@ struct SearchResult {
     std::uint64_t nodes = 0;
     /// Wall-clock time in milliseconds.
     int ms = 0;
-    /// Depth of the search the scores come from.
+    /// Deepest fully completed iteration; the scores come from this depth.
     int usedDepth = 0;
+    /// True when the time limit stopped the search before the requested depth.
+    bool timedOut = false;
     /// True when the move came from an opening book (never, for now).
     bool opening = false;
 };
@@ -43,8 +49,10 @@ public:
 
     /// Pick a move for the player to move in `pos`.
     ///
-    /// Every legal root column is searched with a full window, so columnScores
-    /// are exact minimax values at the searched depth. Scores use the shared
+    /// Uses iterative deepening: depths 1, 2, ... are searched in turn, and an
+    /// iteration cut short by the time limit is discarded, so the result always
+    /// comes from a complete search. Every legal root column is searched with a
+    /// full window, so columnScores are exact minimax values at usedDepth. Scores use the shared
     /// scale: kWinScore - p for a win p plies from the root (kWinScore for an
     /// immediate win), -kWinScore + p for a loss, otherwise evaluate().
     SearchResult chooseMove(const Position& pos, const SearchOptions& options = {});
