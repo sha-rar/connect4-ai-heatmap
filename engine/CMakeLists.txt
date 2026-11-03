@@ -10,6 +10,12 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 endif()
 
+# Link the MinGW runtime statically so executables do not pick up a
+# different libstdc++ DLL from PATH at run time.
+if(MINGW)
+  add_link_options(-static)
+endif()
+
 add_library(connect4_engine
   src/position.cpp
   src/evaluate.cpp
