@@ -29,6 +29,15 @@ struct WinFixture {
     std::string status;  // "playing", "won" or "draw"
 };
 
+/// One entry of tests/fixtures/evaluations.json: TypeScript evaluateBoard()
+/// results for each player.
+struct EvaluationFixture {
+    std::string id;
+    std::vector<std::string> rows;
+    int scoreFor1 = 0;
+    int scoreFor2 = 0;
+};
+
 /// Directory holding the shared fixture files. Uses the CONNECT4_FIXTURES
 /// environment variable if set, otherwise the repository's tests/fixtures.
 std::string fixtureDir();
@@ -36,6 +45,7 @@ std::string fixtureDir();
 /// Load the shared fixtures. Throws std::runtime_error on a missing or invalid file.
 std::vector<PositionFixture> loadPositions();
 std::vector<WinFixture> loadWins();
+std::vector<EvaluationFixture> loadEvaluations();
 
 /// Convert top-to-bottom row strings ('.', '1', '2') into contract cells.
 Cells rowsToCells(const std::vector<std::string>& rows);

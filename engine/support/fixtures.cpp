@@ -95,6 +95,21 @@ std::vector<WinFixture> loadWins() {
     return out;
 }
 
+std::vector<EvaluationFixture> loadEvaluations() {
+    const Json root = readFile("evaluations.json");
+    std::vector<EvaluationFixture> out;
+    for (const auto& p : member(root, "positions").array()) {
+        EvaluationFixture f;
+        f.id = member(p, "id").string();
+        f.rows = stringArray(member(p, "rows"));
+        const Json& scores = member(p, "scores");
+        f.scoreFor1 = member(scores, "1").integer();
+        f.scoreFor2 = member(scores, "2").integer();
+        out.push_back(std::move(f));
+    }
+    return out;
+}
+
 Cells rowsToCells(const std::vector<std::string>& rows) {
     if (rows.size() != static_cast<std::size_t>(kHeight)) {
         throw std::runtime_error("fixture board must have 6 rows");
