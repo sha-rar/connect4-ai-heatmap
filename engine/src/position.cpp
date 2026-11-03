@@ -28,7 +28,7 @@ std::optional<Position> Position::fromCells(const Cells& cells, int player) {
             if (value != 1 && value != 2) return std::nullopt;
             if (seenEmpty) return std::nullopt;  // disc floating above a gap
 
-            const Bitboard b = bit(col, heightOf(row));
+            const Bitboard b = cellBit(col, heightOf(row));
             if (value == 1) {
                 p1 |= b;
                 ++count1;
@@ -50,8 +50,25 @@ std::optional<Position> Position::fromCells(const Cells& cells, int player) {
     return pos;
 }
 
+std::optional<Position> Position::fromMoves(std::string_view moves) {
+    Position pos;
+    for (const char ch : moves) {
+        const int col = ch - '0';
+        if (!pos.canPlay(col) || pos.lastMoverWon()) return std::nullopt;
+        pos.play(col);
+    }
+    return pos;
+}
+
+int Position::winner() const {
+    const int last = toMove() == 1 ? 2 : 1;
+    if (hasAlignment(opponent())) return last;
+    if (hasAlignment(current())) return toMove();  // only in hand-built positions
+    return 0;
+}
+
 int Position::cell(int row, int col) const {
-    const Bitboard b = bit(col, heightOf(row));
+    const Bitboard b = cellBit(col, heightOf(row));
     if ((mask_ & b) == 0) return 0;
     const bool mine = (current_ & b) != 0;
     const int other = toMove() == 1 ? 2 : 1;
