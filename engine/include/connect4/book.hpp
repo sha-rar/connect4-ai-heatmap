@@ -8,8 +8,9 @@
 
 namespace connect4 {
 
-/// Book entry: column scores for one position, as a full search at
-/// `kBookDepth` returned them. kNoScore marks a full column.
+/// Book entry: depth-limited column evaluations for one position, as a full
+/// search at `kBookDepth` returned them. They are not solved game values.
+/// kNoScore marks a full column.
 struct BookEntry {
     Bitboard key;  // canonical key: the smaller of the position's and its mirror's
     std::array<std::int32_t, kWidth> scores;

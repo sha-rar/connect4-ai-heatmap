@@ -19,8 +19,9 @@ struct SearchOptions {
     /// completes, so a very short budget can be exceeded.
     int timeLimitMs = 250;
     /// Answer from the opening book when it covers the position at least as
-    /// deeply as `depth`. The book holds precomputed search results, so the
-    /// answer equals a fresh search at the book's depth, only instantly.
+    /// deeply as `depth`. The book holds depth-limited search results, so the
+    /// scores equal a fresh search at the book's depth, only instantly. On the
+    /// empty board the centre is played whatever the scores (kEmptyBoardMove).
     bool useBook = true;
 };
 
