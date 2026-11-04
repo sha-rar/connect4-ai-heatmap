@@ -110,6 +110,22 @@ std::vector<EvaluationFixture> loadEvaluations() {
     return out;
 }
 
+std::vector<GameFixture> loadGames() {
+    const Json root = readFile("games.json");
+    std::vector<GameFixture> out;
+    for (const auto& g : member(root, "games").array()) {
+        GameFixture f;
+        f.id = member(g, "id").string();
+        f.moves = member(g, "moves").string();
+        f.legal = stringArray(member(g, "legal"));
+        f.status = member(g, "status").string();
+        f.winner = member(g, "winner").integer();
+        f.rows = stringArray(member(g, "rows"));
+        out.push_back(std::move(f));
+    }
+    return out;
+}
+
 Cells rowsToCells(const std::vector<std::string>& rows) {
     if (rows.size() != static_cast<std::size_t>(kHeight)) {
         throw std::runtime_error("fixture board must have 6 rows");

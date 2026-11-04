@@ -38,6 +38,17 @@ struct EvaluationFixture {
     int scoreFor2 = 0;
 };
 
+/// One entry of tests/fixtures/games.json: a complete game with the legal
+/// moves after every ply, generated from the TypeScript rules.
+struct GameFixture {
+    std::string id;
+    std::string moves;               // zero-based column digits
+    std::vector<std::string> legal;  // legal[i]: legal columns after move i
+    std::string status;              // "won" or "draw"
+    int winner = 0;
+    std::vector<std::string> rows;   // final board, top row first
+};
+
 /// Directory holding the shared fixture files. Uses the CONNECT4_FIXTURES
 /// environment variable if set, otherwise the repository's tests/fixtures.
 std::string fixtureDir();
@@ -46,6 +57,7 @@ std::string fixtureDir();
 std::vector<PositionFixture> loadPositions();
 std::vector<WinFixture> loadWins();
 std::vector<EvaluationFixture> loadEvaluations();
+std::vector<GameFixture> loadGames();
 
 /// Convert top-to-bottom row strings ('.', '1', '2') into contract cells.
 Cells rowsToCells(const std::vector<std::string>& rows);

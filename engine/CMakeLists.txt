@@ -76,6 +76,7 @@ if(CONNECT4_BUILD_TESTS)
     tests/test_bindings.cpp
     tests/test_book.cpp
     tests/test_tt.cpp
+    tests/test_rules.cpp
     wasm/bindings.cpp
   )
   target_link_libraries(connect4_tests PRIVATE connect4_engine connect4_support)
