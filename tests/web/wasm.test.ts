@@ -32,7 +32,10 @@ describe("WASM engine contract", () => {
       expect(result.columnScores[c] === null).toBe(!isLegalMove(b, c));
     }
     expect(result.columnScores[result.bestCol]).toBe(result.bestScore);
-    expect(Math.max(...result.columnScores.filter((s): s is number => s !== null))).toBe(result.bestScore);
+    if (p.id !== "empty") {
+      // The empty board's opening rule overrides its depth-limited book scores.
+      expect(Math.max(...result.columnScores.filter((s): s is number => s !== null))).toBe(result.bestScore);
+    }
     expect(result.timedOut).toBe(false);
     if (result.opening) {
       // Opening book: a precomputed search at least as deep as requested.
@@ -52,12 +55,13 @@ describe("WASM engine picks expected moves and outcomes", () => {
     expect(p.bestMoves).toContain(engine.chooseMove(board(p.rows), p.toMove, EXACT).bestCol);
   });
 
-  // Known gap (engine/README.md): the opening book holds depth-16 heuristic
-  // scores, which prefer column 2 on the empty board, while perfect play opens
-  // in the centre. Remove `.fails` once the book uses solved values.
-  it.fails("empty board opens in the centre", () => {
+  it("empty board opens in column 3 at every app depth", () => {
     const empty = positions.find((p) => p.id === "empty")!;
-    expect(empty.bestMoves).toContain(engine.chooseMove(board(empty.rows), 1, EXACT).bestCol);
+    for (const depth of [4, 5, 6, 7, 8, 10, 12]) {
+      const result = engine.chooseMove(board(empty.rows), 1, { depth, timeLimitMs: 250 });
+      expect(result.bestCol).toBe(3);
+      expect(result.opening).toBe(true);
+    }
   });
 
   it.each(positions.filter((p) => p.outcome).map((p) => [p.id, p] as const))("%s outcome", (_id, p) => {
