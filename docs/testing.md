@@ -40,12 +40,16 @@ Regenerate the corpus with `pnpm fixtures:games` after changing the generator. T
 
 [Playwright](https://playwright.dev) tests in [`tests/e2e/`](../tests/e2e) run in Chromium against the production build of the web app (`vite build` + `vite preview`), so they exercise the WebAssembly engine in its Web Worker with no API server. Any console error from the page or the worker fails the test. They check that:
 
+- the start screen offers both modes and explains the game and the analysis, and Menu returns to it;
 - the board starts empty with seven playable columns;
-- the AI answers a human move and scores all seven columns, marking exactly one as its move;
-- the AI opens in column 3 from the opening book when it moves first;
-- the AI still answers at depth 12 with a 1-second limit;
-- full columns are disabled, and Reset clears the board and heatmap;
-- replayed games from the shared corpus end with the right result, after which no more discs can be dropped.
+- the AI answers a human move; the heatmap scores all seven columns and the analysis panel ranks them, marking exactly one as the AI's move;
+- the AI opens in column 3 from the opening book when it moves first, and still answers at Expert difficulty;
+- Advanced settings switch the difficulty to Custom;
+- Undo takes back the human move and the AI's reply (one move in two-player mode), and a hint analyses without playing;
+- the Standard view hides the heatmap while the panel keeps the scores, and New game clears both;
+- full columns are disabled;
+- replayed games from the shared corpus end with the right result, highlight the winning discs, accept no further moves, and Play again starts a new game;
+- on a phone-sized screen the board sits above the controls with no horizontal scrolling.
 
 Install the browser once with `pnpm exec playwright install chromium`. Reports and traces of failed tests go to `tests/e2e/.report` and `tests/e2e/.results`.
 
@@ -55,6 +59,6 @@ Install the browser once with `pnpm exec playwright install chromium`. Reports a
 | --- | ------- | ----- |
 | Native engine (GCC, Clang, MSVC) | Ubuntu 24.04, Windows Server 2022 | Configure, build and run CTest in Release |
 | WebAssembly engine | Ubuntu 24.04 | Install Emscripten 6.0.13 (cached), run `scripts/build-wasm.mjs`, and fail if the result differs from the committed `apps/web/src/engine/generated/` files |
-| TypeScript and browser tests | Ubuntu 24.04, after the WebAssembly job | `pnpm test` and `pnpm test:e2e`, using the WebAssembly engine built from the commit's sources; uploads the Playwright report on failure |
+| TypeScript and browser tests | Ubuntu 24.04, after the WebAssembly job | Type-check the web app, then `pnpm test` and `pnpm test:e2e`, using the WebAssembly engine built from the commit's sources; uploads the Playwright report on failure |
 
 If the WebAssembly job reports a stale build, run `pnpm build:wasm` (see [engine/README.md](../engine/README.md#webassembly-build)) and commit the regenerated files.
