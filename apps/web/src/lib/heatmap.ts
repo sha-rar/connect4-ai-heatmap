@@ -78,16 +78,76 @@ function describeKind(heat: ColumnHeat, col: number): string {
   }
 }
 
-/** Short badge drawn at the top of a column, or null for none. */
+/** Badge shown under a column in the heatmap view, or null for none. */
 export function columnBadge(heat: ColumnHeat): string | null {
   switch (heat.kind) {
     case "illegal":
       return "Full";
     case "win":
+      return `Win in ${heat.movesToMate}`;
+    case "loss":
+      return `Loss in ${heat.movesToMate}`;
+    default:
+      return null;
+  }
+}
+
+/** Compact badge for narrow screens: "W2", "L1", "Full". */
+export function shortBadge(heat: ColumnHeat): string | null {
+  switch (heat.kind) {
+    case "win":
       return `W${heat.movesToMate}`;
     case "loss":
       return `L${heat.movesToMate}`;
     default:
-      return null;
+      return columnBadge(heat);
   }
+}
+
+/** Headline value for a column in the analysis panel. */
+export function verdictLabel(heat: ColumnHeat): string {
+  switch (heat.kind) {
+    case "illegal":
+      return "Full";
+    case "unscored":
+      return "Not scored";
+    case "heuristic": {
+      const score = Math.round(heat.score!);
+      return score > 0 ? `+${score}` : String(score);
+    }
+    default:
+      return columnBadge(heat)!;
+  }
+}
+
+/** One-sentence explanation of a column for the analysis panel. */
+export function explainColumn(heat: ColumnHeat, isBest: boolean): string {
+  const plural = (n: number) => (n === 1 ? "move" : "moves");
+  switch (heat.kind) {
+    case "illegal":
+      return "The column is full.";
+    case "unscored":
+      return "The engine did not evaluate this column.";
+    case "win":
+      return `Forces a win in ${heat.movesToMate} ${plural(heat.movesToMate!)}, whatever the opponent does.`;
+    case "loss":
+      return `The opponent can force a win in ${heat.movesToMate} ${plural(heat.movesToMate!)}.`;
+    case "heuristic":
+      return isBest
+        ? "No forced result within the search; the strongest position by the evaluation."
+        : "No forced result within the search; scored by open lines and centre control.";
+  }
+}
+
+/**
+ * Legal columns ordered best first: wins (fastest first), then evaluations,
+ * then losses (slowest first). Ties keep the more central column first.
+ */
+export function rankColumns(heats: ColumnHeat[]): number[] {
+  const centre = (heats.length - 1) / 2;
+  return heats
+    .map((h, col) => ({ h, col }))
+    .filter(({ h }) => h.kind !== "illegal" && h.score !== null)
+    .sort((a, b) => b.h.score! - a.h.score! || Math.abs(a.col - centre) - Math.abs(b.col - centre))
+    .map(({ col }) => col);
 }

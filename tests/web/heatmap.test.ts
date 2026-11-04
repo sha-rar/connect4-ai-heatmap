@@ -3,7 +3,15 @@ import { describe, expect, it } from "vitest";
 import type { Board } from "@connect4/core";
 import { WIN_SCORE, makeEmptyBoard } from "@connect4/core";
 
-import { classifyColumns, columnBadge, describeColumn } from "../../apps/web/src/lib/heatmap";
+import {
+  classifyColumns,
+  columnBadge,
+  describeColumn,
+  explainColumn,
+  rankColumns,
+  shortBadge,
+  verdictLabel
+} from "../../apps/web/src/lib/heatmap";
 import { loadPositions, rowsToBoard } from "../fixtures/load";
 
 const fullColumns = rowsToBoard(loadPositions().find((p) => p.id === "full-columns")!.rows) as Board;
@@ -70,7 +78,39 @@ describe("column labels", () => {
   });
 
   it("badges only illegal and mate columns", () => {
-    expect([illegal, win, loss, heuristic, unscored].map(columnBadge)).toEqual(["Full", "W2", "L1", null, null]);
+    expect([illegal, win, loss, heuristic, unscored].map(columnBadge)).toEqual([
+      "Full",
+      "Win in 2",
+      "Loss in 1",
+      null,
+      null
+    ]);
+    expect([illegal, win, loss, heuristic, unscored].map(shortBadge)).toEqual(["Full", "W2", "L1", null, null]);
+  });
+
+  it("gives each kind a verdict and an explanation", () => {
+    expect([illegal, win, loss, heuristic, unscored].map(verdictLabel)).toEqual([
+      "Full",
+      "Win in 2",
+      "Loss in 1",
+      "+42",
+      "Not scored"
+    ]);
+    expect(explainColumn(win, true)).toBe("Forces a win in 2 moves, whatever the opponent does.");
+    expect(explainColumn(loss, false)).toBe("The opponent can force a win in 1 move.");
+    expect(verdictLabel({ ...heuristic, score: -7 })).toBe("-7");
+  });
+});
+
+describe("rankColumns", () => {
+  it("orders wins (fastest first), evaluations, then losses (slowest first)", () => {
+    const heats = classifyColumns(fullColumns, [5, 5, -WIN_SCORE + 2, WIN_SCORE - 3, -WIN_SCORE + 4, 10, WIN_SCORE]);
+    // Columns 0, 1 and 6 are full, so they are left out.
+    expect(rankColumns(heats)).toEqual([3, 5, 4, 2]);
+  });
+
+  it("breaks ties towards the centre", () => {
+    expect(rankColumns(classifyColumns(makeEmptyBoard(), [1, 1, 1, 1, 1, 1, 1]))).toEqual([3, 2, 4, 1, 5, 0, 6]);
   });
 });
 
