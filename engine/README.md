@@ -9,7 +9,8 @@ Requires CMake 3.20+ and a C++20 compiler (GCC 11+, Clang 14+ or MSVC 2022).
 ```sh
 cmake -S engine -B engine/build
 cmake --build engine/build
-ctest --test-dir engine/build --output-on-failure   # or: engine/build/connect4_tests [filter]
+ctest --test-dir engine/build --output-on-failure   # one CTest entry per test case
+engine/build/connect4_tests [substring | --exact name | --list]
 engine/build/connect4_bench [--max-depth N] [--runs N]
 ```
 
