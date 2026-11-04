@@ -25,6 +25,19 @@ export type WinFixture = {
   status: "playing" | "won" | "draw";
 };
 
+export type GameFixture = {
+  id: string;
+  /** Zero-based columns played from the empty board, e.g. "3324". */
+  moves: string;
+  /** legal[i]: legal columns after move i, as digits ("" once the board is full). */
+  legal: string[];
+  status: "won" | "draw";
+  winner: 0 | FixturePlayer;
+  direction?: "horizontal" | "vertical" | "diagonal" | "anti-diagonal";
+  /** Final board, top row first. */
+  rows: string[];
+};
+
 const FIXTURE_DIR = dirname(fileURLToPath(import.meta.url));
 
 function readPositions<T>(file: string): T[] {
@@ -38,6 +51,11 @@ export function loadPositions(): PositionFixture[] {
 
 export function loadWins(): WinFixture[] {
   return readPositions<WinFixture>("wins.json");
+}
+
+/** Complete games generated from the TypeScript rules (scripts/generate-games.ts). */
+export function loadGames(): GameFixture[] {
+  return JSON.parse(readFileSync(join(FIXTURE_DIR, "games.json"), "utf8")).games as GameFixture[];
 }
 
 /** Convert top-to-bottom row strings into a flat row-major board. */
