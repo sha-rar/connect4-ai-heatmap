@@ -7,13 +7,6 @@ export default defineConfig({
   worker: { format: "es" },
   server: {
     port: 5173,
-    strictPort: true,
-    proxy: {
-      "/api": {
-        target: "http://localhost:3001",
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, "")
-      }
-    }
+    strictPort: true
   }
 });

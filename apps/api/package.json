@@ -4,9 +4,6 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
-    "start": "node dist/server.js",
-    "build": "tsc -p tsconfig.json",
     "bench": "tsx bench/benchmark.ts",
     "compare": "tsx bench/compare.ts",
     "export:evaluations": "tsx scripts/export-evaluations.ts",
@@ -14,16 +11,10 @@
     "lint": "echo \"no lint yet\""
   },
   "dependencies": {
-    "@connect4/core": "workspace:*",
-    "cors": "^2.8.5",
-    "express": "^4.22.1",
-    "zod": "^3.25.76"
+    "@connect4/core": "workspace:*"
   },
   "devDependencies": {
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
     "@types/node": "^25.0.9",
-    "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "tsx": "^4.21.0"
   }
 }
