@@ -24,6 +24,11 @@ struct BookHit {
     int depth;
 };
 
+/// Opening rule for the empty board. The book's depth-limited scores prefer
+/// column 2 there, but the first player's only winning first move is the
+/// centre (Allis, 1988), so a book answer for the empty board plays it.
+inline constexpr int kEmptyBoardMove = kWidth / 2;
+
 /// Look up `pos` in the generated opening book.
 std::optional<BookHit> lookupBook(const Position& pos);
 

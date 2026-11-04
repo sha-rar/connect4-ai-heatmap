@@ -221,6 +221,10 @@ SearchResult Engine::chooseMove(const Position& pos, const SearchOptions& option
             result.usedDepth = hit->depth;
             result.opening = true;
             pickBest(result);
+            if (pos.moves() == 0) {
+                result.bestCol = kEmptyBoardMove;
+                result.bestScore = *result.columnScores[kEmptyBoardMove];
+            }
             result.ms = elapsedMs(start);
             return result;
         }
