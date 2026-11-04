@@ -88,6 +88,16 @@ TEST_CASE(book_matches_a_fresh_search) {
     }
 }
 
+TEST_CASE(empty_board_opens_in_the_centre) {
+    Engine engine;
+    const auto r = engine.chooseMove(Position(), {6, 250});
+    CHECK(r.opening);
+    CHECK_EQ(r.bestCol, 3);
+    CHECK_EQ(r.columnScores[3], std::optional<int>(r.bestScore));
+    // Only the chosen column changes; the book's scores are reported as is.
+    CHECK_EQ(show(r.columnScores), show(lookupBook(Position())->columnScores));
+}
+
 TEST_CASE(choose_move_uses_book_only_when_deep_enough) {
     Engine engine;
     const Position empty;

@@ -279,14 +279,15 @@ TEST_CASE(search_matches_reference_on_varied_positions) {
 
 TEST_CASE(results_are_consistent_with_the_heatmap) {
     // Whatever the options (exact, time-limited, book), the chosen move must
-    // be the best-scored column, ties going to the most central column.
+    // be the best-scored column, ties going to the most central column. The
+    // empty board's opening rule is the one exception (see test_book).
     Engine engine;
     const SearchOptions variants[] = {{6, 0, false}, {kMaxPly, 5, false}, {6, 250, true}};
     for (const auto& f : loadEvaluations()) {
         const Cells cells = rowsToCells(f.rows);
         const auto pos = Position::fromCells(cells, impliedToMove(cells));
         REQUIRE(pos.has_value());
-        if (pos->winner() != 0 || pos->isFull()) continue;
+        if (pos->winner() != 0 || pos->isFull() || pos->moves() == 0) continue;
 
         for (const auto& options : variants) {
             CONTEXT(f.id + " depth " + std::to_string(options.depth));
