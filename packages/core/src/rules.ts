@@ -1,5 +1,5 @@
 import { Board, Player, ROWS, COLS, idx } from "./constants";
-import { boardFull, getCell } from "./board";
+import { boardFull } from "./board";
 
 const DIRECTIONS: Array<[dr: number, dc: number]> = [
   [0, 1],   // right
@@ -8,19 +8,28 @@ const DIRECTIONS: Array<[dr: number, dc: number]> = [
   [-1, 1]   // up-right
 ];
 
-function countInDirection(board: Board, row: number, col: number, player: Player, dr: number, dc: number): number {
-  let r = row;
-  let c = col;
-  let count = 0;
-
-  while (r >= 0 && r < ROWS && c >= 0 && c < COLS) {
-    if (getCell(board, r, c) !== player) break;
-    count++;
-    r += dr;
-    c += dc;
+/**
+ * Board indices of every disc that is part of a four-in-a-row for `player`
+ * (more than four when lines overlap or extend), in ascending order. Empty
+ * when the player has not won.
+ */
+export function winningCells(board: Board, player: Player): number[] {
+  const cells = new Set<number>();
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      for (const [dr, dc] of DIRECTIONS) {
+        const line: number[] = [];
+        for (let k = 0; k < 4; k++) {
+          const rr = r + dr * k;
+          const cc = c + dc * k;
+          if (rr < 0 || rr >= ROWS || cc < 0 || cc >= COLS || board[idx(rr, cc)] !== player) break;
+          line.push(idx(rr, cc));
+        }
+        if (line.length === 4) line.forEach((i) => cells.add(i));
+      }
+    }
   }
-
-  return count;
+  return [...cells].sort((a, b) => a - b);
 }
 
 export function checkWin(board: Board, player: Player): boolean {
@@ -55,7 +64,7 @@ export type GameStatus =
   | { state: "won"; winner: Player }
   | { state: "draw"; winner: 0 };
 
-export function getStatus(board: Board, currentPlayer: Player): GameStatus {
+export function getStatus(board: Board, _currentPlayer?: Player): GameStatus {
   const p1Won = checkWin(board, 1);
   if (p1Won) return { state: "won", winner: 1 };
 

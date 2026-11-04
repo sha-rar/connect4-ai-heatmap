@@ -7,7 +7,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
 import type { Board, Player } from "@connect4/core";
-import { COLS, applyMove, getStatus, legalMoves, makeEmptyBoard, otherPlayer } from "@connect4/core";
+import { COLS, applyMove, getStatus, legalMoves, makeEmptyBoard, otherPlayer, winningCells } from "@connect4/core";
 
 import createConnect4Module from "../../apps/web/src/engine/generated/connect4.js";
 import type { WasmEngine } from "../../apps/web/src/engine/wasmEngine";
@@ -59,6 +59,23 @@ describe("TypeScript rules reproduce the games corpus", () => {
       last = next;
     }
     expect(last).toEqual(rowsToBoard(game.rows));
+  });
+
+  it.each(games.map((g) => [g.id, g] as const))("%s winning cells", (_id, game) => {
+    const final = rowsToBoard(game.rows) as Board;
+    if (game.status === "draw") {
+      expect(winningCells(final, 1)).toEqual([]);
+      expect(winningCells(final, 2)).toEqual([]);
+      return;
+    }
+    // The winning line always runs through the last disc played.
+    const lastCol = Number(game.moves.at(-1));
+    let lastRow = 0;
+    while (final[lastRow * COLS + lastCol] === 0) lastRow++; // top disc of that column
+    const cells = winningCells(final, game.winner as Player);
+    expect(cells.length).toBeGreaterThanOrEqual(4);
+    expect(cells).toContain(lastRow * COLS + lastCol);
+    expect(winningCells(final, otherPlayer(game.winner as Player))).toEqual([]);
   });
 });
 

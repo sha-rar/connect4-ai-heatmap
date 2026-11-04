@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { makeEmptyBoard, applyMove } from "../src/board";
-import { checkWin } from "../src/rules";
+import { checkWin, winningCells } from "../src/rules";
 import type { Board, Player } from "../src/constants";
 
 function dropMany(board: Board, cols: number[], player: Player): Board {
@@ -90,5 +90,29 @@ describe("checkWin", () => {
     b = dropMany(b, [0, 1, 2], 1);
     expect(checkWin(b, 1)).toBe(false);
     expect(checkWin(b, 2)).toBe(false);
+  });
+});
+
+describe("winningCells", () => {
+  it("is empty when the player has not won", () => {
+    const b = dropMany(makeEmptyBoard(), [0, 1, 2], 1);
+    expect(winningCells(b, 1)).toEqual([]);
+    expect(winningCells(makeEmptyBoard(), 2)).toEqual([]);
+  });
+
+  it("returns the four discs of a horizontal line", () => {
+    const b = dropMany(makeEmptyBoard(), [1, 2, 3, 4], 1);
+    expect(winningCells(b, 1)).toEqual([36, 37, 38, 39]);
+    expect(winningCells(b, 2)).toEqual([]);
+  });
+
+  it("returns a vertical line", () => {
+    const b = dropMany(makeEmptyBoard(), [6, 6, 6, 6], 2);
+    expect(winningCells(b, 2)).toEqual([20, 27, 34, 41]);
+  });
+
+  it("includes every disc of a line longer than four", () => {
+    const b = dropMany(makeEmptyBoard(), [0, 1, 2, 3, 4], 1);
+    expect(winningCells(b, 1)).toEqual([35, 36, 37, 38, 39]);
   });
 });
