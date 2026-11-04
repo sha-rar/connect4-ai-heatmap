@@ -13,10 +13,12 @@
     "fixtures:games": "tsx scripts/generate-games.ts",
     "test": "pnpm -r test && vitest run",
     "test:reference": "vitest run",
+    "test:e2e": "playwright test",
     "lint": "pnpm -r lint",
     "format": "prettier -w ."
   },
   "devDependencies": {
+    "@playwright/test": "1.56.1",
     "@types/node": "^25.0.9",
     "prettier": "^3.3.3",
     "tsx": "^4.21.0",

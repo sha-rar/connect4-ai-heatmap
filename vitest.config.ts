@@ -10,8 +10,7 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["tests/**/*.test.ts"],
-    // Placeholder until browser tests are added in Phase 5.
-    exclude: ["tests/web/smoke.test.ts"]
+    // Browser tests (tests/e2e/*.spec.ts) run with Playwright instead.
+    include: ["tests/**/*.test.ts"]
   }
 });
