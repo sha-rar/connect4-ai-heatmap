@@ -326,11 +326,11 @@ export default function App() {
           <div>
             <h1 style={styles.title}>Connect 4</h1>
             <p style={styles.sub}>
-              {title}
+              <span data-testid="status">{title}</span>
               {aiInfo ? (
                 <>
                   <br />
-                  <span style={{ opacity: 0.75 }}>
+                  <span style={{ opacity: 0.75 }} data-testid="engine-info">
                     C++ engine: depth {aiInfo.usedDepth}
                     {aiInfo.timedOut ? " (time limit)" : ""} · {aiInfo.ms}ms ·{" "}
                     {aiInfo.nodes.toLocaleString()} nodes
@@ -341,7 +341,7 @@ export default function App() {
               {aiError ? (
                 <>
                   <br />
-                  <span style={{ color: "#ff8a8a" }}>AI error: {aiError}</span>
+                  <span style={{ color: "#ff8a8a" }} role="alert">AI error: {aiError}</span>
                 </>
               ) : null}
             </p>
@@ -378,6 +378,7 @@ export default function App() {
             <div style={styles.label}>AI plays as</div>
             <select
               style={styles.select}
+              aria-label="AI plays as"
               value={aiPlayer}
               onChange={(e) => setAiPlayer(Number(e.target.value) as Player)}
             >
@@ -395,6 +396,7 @@ export default function App() {
               <span style={styles.small}>Max depth</span>
               <select
                 style={{ ...styles.select, width: 120 }}
+                aria-label="Max depth"
                 value={depth}
                 onChange={(e) => setDepth(Number(e.target.value))}
               >
@@ -410,6 +412,7 @@ export default function App() {
               <span style={styles.small}>Time</span>
               <select
                 style={{ ...styles.select, width: 120 }}
+                aria-label="Time limit"
                 value={timeLimitMs}
                 onChange={(e) => setTimeLimitMs(Number(e.target.value))}
               >
@@ -444,6 +447,7 @@ export default function App() {
                   onClick={() => onDropHuman(c)}
                   aria-label={description}
                   title={description}
+                  data-testid={`column-${c}`}
                 >
                   {badge ? <span style={styles.badge}>{badge}</span> : null}
                 </button>
@@ -452,14 +456,21 @@ export default function App() {
           </div>
 
           {/* Visual board */}
-          <div style={styles.board}>
+          <div style={styles.board} data-testid="board">
             {Array.from({ length: ROWS }, (_, r) =>
               Array.from({ length: COLS }, (_, c) => {
                 const cell = getCell(board, r, c) as Cell;
                 const discStyle =
                   cell === 1 ? styles.disc1 : cell === 2 ? styles.disc2 : undefined;
 
-                return <div key={`${r}-${c}`} style={{ ...styles.cell, ...discStyle }} />;
+                return (
+                  <div
+                    key={`${r}-${c}`}
+                    style={{ ...styles.cell, ...discStyle }}
+                    data-testid={`cell-${r}-${c}`}
+                    data-player={cell}
+                  />
+                );
               })
             )}
           </div>
