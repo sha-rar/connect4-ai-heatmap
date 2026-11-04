@@ -32,7 +32,7 @@ Rules are applied in this order; the first match wins.
 
 ## Chosen column
 
-The column the AI played gets a white inner outline, and its tooltip ends with "(AI's move)". For the C++ engine, this column always holds the highest score in the heatmap. The marker stays even if the move filled the column.
+The column the AI played gets a white inner outline, and its tooltip ends with "(AI's move)". For the C++ engine, this column holds the highest score in the heatmap, except on the empty board: there the AI plays the centre by rule, while the shading shows the opening book's depth-limited scores, which rate column 2 higher. The marker stays even if the move filled the column.
 
 ## Lifecycle
 
