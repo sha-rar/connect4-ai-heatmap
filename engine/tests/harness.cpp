@@ -34,12 +34,20 @@ Context::~Context() { gContext.pop_back(); }
 
 int main(int argc, char** argv) {
     using namespace c4test;
-    const std::string_view filter = argc > 1 ? argv[1] : "";
+    // Usage: connect4_tests [substring] | --exact <name> | --list
+    const std::string_view first = argc > 1 ? argv[1] : "";
+    if (first == "--list") {
+        for (const auto& test : registry()) std::cout << test.name << "\n";
+        return 0;
+    }
+    const bool exact = first == "--exact";
+    const std::string_view filter = exact ? (argc > 2 ? argv[2] : "") : first;
 
     int run = 0;
     int failedTests = 0;
     for (const auto& test : registry()) {
-        if (!filter.empty() && std::string_view(test.name).find(filter) == std::string_view::npos) {
+        const std::string_view name = test.name;
+        if (exact ? name != filter : !filter.empty() && name.find(filter) == std::string_view::npos) {
             continue;
         }
         ++run;

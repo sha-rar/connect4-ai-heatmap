@@ -79,7 +79,15 @@ if(CONNECT4_BUILD_TESTS)
     wasm/bindings.cpp
   )
   target_link_libraries(connect4_tests PRIVATE connect4_engine connect4_support)
-  add_test(NAME connect4_tests COMMAND connect4_tests)
+  # One CTest entry per TEST_CASE, so CI reports failures by name.
+  file(GLOB CONNECT4_TEST_SOURCES CONFIGURE_DEPENDS tests/test_*.cpp)
+  foreach(source IN LISTS CONNECT4_TEST_SOURCES)
+    file(STRINGS ${source} cases REGEX "^TEST_CASE\\(")
+    foreach(line IN LISTS cases)
+      string(REGEX REPLACE "^TEST_CASE\\(([A-Za-z0-9_]+)\\).*" "\\1" name "${line}")
+      add_test(NAME ${name} COMMAND connect4_tests --exact ${name})
+    endforeach()
+  endforeach()
 endif()
 
 option(CONNECT4_BUILD_BENCH "Build the engine benchmark" ON)
