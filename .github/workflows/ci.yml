@@ -115,6 +115,9 @@ jobs:
           name: wasm-engine
           path: apps/web/src/engine/generated
 
+      - name: Type-check the web app
+        run: pnpm --filter @connect4/web typecheck
+
       - name: Unit and shared rule tests
         run: pnpm test
 
